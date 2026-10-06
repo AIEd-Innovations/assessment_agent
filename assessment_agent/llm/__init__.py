@@ -41,7 +41,7 @@ def get_llm_provider(provider_name: str | None = None) -> LLMProvider:
     Parameters
     ----------
     provider_name:
-        ``"claude_cli"`` (default) or ``"anthropic"``.
+        ``"claude_cli"`` (default), ``"anthropic"`` or ``"fake"`` (offline canned responses).
         When *None*, falls back to the ``DEFAULT_LLM_PROVIDER`` env var,
         then to ``"claude_cli"``.
     """
@@ -58,9 +58,14 @@ def get_llm_provider(provider_name: str | None = None) -> LLMProvider:
 
         return AnthropicAPIProvider()
 
+    if provider_name == "fake":
+        from .fake import FakeLLMProvider
+
+        return FakeLLMProvider()
+
     raise ValueError(
         f"Unknown LLM provider {provider_name!r}. "
-        f"Supported values: 'claude_cli', 'anthropic'."
+        f"Supported values: 'claude_cli', 'anthropic', 'fake'."
     )
 
 

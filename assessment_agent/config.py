@@ -9,7 +9,7 @@ MANUAL_REVIEW_WEIGHT = 0.10
 COURSE_ID = "CSC 580"
 
 # LLM provider (override via DEFAULT_LLM_PROVIDER env var)
-# Supported: "claude_cli", "anthropic"
+# Supported: "claude_cli", "anthropic", "fake" (offline canned responses, no CLI or API key needed)
 DEFAULT_LLM_PROVIDER = os.environ.get("DEFAULT_LLM_PROVIDER", "claude_cli")
 
 # LLM input truncation
