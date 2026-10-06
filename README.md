@@ -26,6 +26,7 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | `DEFAULT_LLM_PROVIDER` | `claude_cli` | see above |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
 | `ANTHROPIC_API_KEY` | none | for `anthropic` |
+| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, the review queue and anomaly reports are written |
 
 ### Seed data for UI development
 Results are stored as JSON files in the repo root (gitignored). To have something to list without grading anything:
@@ -36,6 +37,15 @@ curl "localhost:8000/results?assignment_id=hw1_sorting"
 ```
 `demo/seed_results.json` was produced by running the demo submissions through the real pipeline with the `fake` provider;
 two records were then edited by hand (one high-risk anomaly, one high review priority) so the UI has varied statuses.
+
+## Docker
+```bash
+docker build -t assessment-agent .
+docker run -p 8000:8000 -e DEFAULT_LLM_PROVIDER=fake -e CORS_ORIGINS=http://localhost:5173 -v assessment-data:/appdata assessment-agent
+```
+The image runs as an unprivileged user and writes results to `/appdata` (mount a volume to keep them). It does **not** contain the
+`claude` CLI, so the default provider will not work in it: use `anthropic` (with `ANTHROPIC_API_KEY`) or `fake`.
+Note: this Dockerfile has not been built yet by its author.
 
 ## Endpoints
 | Method and path | Purpose |

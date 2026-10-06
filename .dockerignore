@@ -1,0 +1,10 @@
+.git/
+.venv/
+venv/
+__pycache__/
+.env
+.pytest_cache/
+assessment_results.json
+review_queue.json
+anomaly_reports.json
+*.lock
