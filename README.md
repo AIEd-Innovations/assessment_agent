@@ -45,7 +45,6 @@ docker run -p 8000:8000 -e DEFAULT_LLM_PROVIDER=fake -e CORS_ORIGINS=http://loca
 ```
 The image runs as an unprivileged user and writes results to `/appdata` (mount a volume to keep them). It does **not** contain the
 `claude` CLI, so the default provider will not work in it: use `anthropic` (with `ANTHROPIC_API_KEY`) or `fake`.
-Note: this Dockerfile has not been built yet by its author.
 
 ## Endpoints
 | Method and path | Purpose |
