@@ -9,7 +9,7 @@ MANUAL_REVIEW_WEIGHT = 0.10
 COURSE_ID = "CSC 580"
 
 # LLM provider (override via DEFAULT_LLM_PROVIDER env var)
-# Supported: "claude_cli", "anthropic"
+# Supported: "claude_cli", "anthropic", "fake" (offline canned responses, no CLI or API key needed)
 DEFAULT_LLM_PROVIDER = os.environ.get("DEFAULT_LLM_PROVIDER", "claude_cli")
 
 # LLM input truncation
@@ -23,7 +23,10 @@ MAX_SUBMISSION_SIZE_MB = 10
 
 # Paths
 _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
-DATA_DIR = "/appdata" if os.environ.get("CONTAINER_APP_NAME") else os.path.dirname(_PACKAGE_DIR)
+# Where results, the review queue and anomaly reports are written. Override with DATA_DIR (for example a mounted volume).
+DATA_DIR = os.environ.get("DATA_DIR") or (
+    "/appdata" if os.environ.get("CONTAINER_APP_NAME") else os.path.dirname(_PACKAGE_DIR)
+)
 RESULTS_FILE = os.path.join(DATA_DIR, "assessment_results.json")
 REVIEW_QUEUE_FILE = os.path.join(DATA_DIR, "review_queue.json")
 ANOMALY_REPORTS_FILE = os.path.join(DATA_DIR, "anomaly_reports.json")
