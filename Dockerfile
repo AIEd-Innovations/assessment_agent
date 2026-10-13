@@ -8,8 +8,7 @@ RUN pip install --no-cache-dir -r requirements.txt
 
 COPY . .
 
-# Results, the review queue and anomaly reports are written to DATA_DIR: mount a volume here to keep them.
-# Student code is executed by the sandbox as a subprocess, so run as an unprivileged user.
+# Results and anomaly reports are written to DATA_DIR: mount a volume here to keep them.
 ENV DATA_DIR=/appdata
 RUN useradd --create-home app && mkdir -p /appdata && chown app /appdata
 USER app
