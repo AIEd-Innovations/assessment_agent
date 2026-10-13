@@ -38,6 +38,7 @@ class GradingSpec(BaseModel):
     description: str = ""
     criteria: list[Criterion]
     guidance: str = ""
+    skill_level: str = ""  # what students are expected to know by this assignment
     # Excluded from model_dump(), so the solution never reaches an API response.
     reference_solution: list[SubmissionFile] = Field(default=[], exclude=True)
 

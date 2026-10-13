@@ -27,5 +27,6 @@
       "description": "Operations run in O(n) or better."
     }
   ],
-  "guidance": "This is a data structures assignment, so students must implement the list from scratch. Using Python's built-in list or collections.deque to store the elements is not acceptable and should be heavily penalized. Give partial credit for operations that work on basic cases but fail edge cases. Value clear naming and docstrings, but do not over-penalize style. Students should demonstrate an understanding of pointer manipulation."
+  "guidance": "This is a data structures assignment, so students must implement the list from scratch. Using Python's built-in list or collections.deque to store the elements is not acceptable and should be heavily penalized. Give partial credit for operations that work on basic cases but fail edge cases. Value clear naming and docstrings, but do not over-penalize style. Students should demonstrate an understanding of pointer manipulation.",
+  "skill_level": "Basic Python, including classes and loops. This is the first data structure students build from scratch; recursion and third-party libraries are not expected."
 }

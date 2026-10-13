@@ -9,7 +9,8 @@ executed. Grading is **synchronous**: several seconds to tens of seconds per stu
 2. One LLM call scores every criterion and writes the feedback. An unusable response is retried once.
 3. `score` is the sum of the criterion scores, out of `max_score`.
 4. `status` is `needs_review` (with `review_reasons`) if grading failed, the grader was unsure, the submission was
-   truncated or the integrity risk is medium or high; otherwise `ai_graded`. An instructor's `final_score` replaces
+   truncated, or the integrity check rated the risk medium or high or found an attempt to influence the grade;
+   otherwise `ai_graded`. An instructor's `final_score` replaces
    `score` and sets the status to `instructor_graded`.
 
 ## Run locally
@@ -39,7 +40,8 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 
 ## Grading specs
 `assessment_agent/assignments/<assignment_id>/spec.json` holds `title`, `description`, `criteria` (`id`, `name`,
-`description`, `max_points`) and `guidance`. An optional `solution/` folder holds reference files, which are never
+`description`, `max_points`), `guidance` and `skill_level` (what students are expected to know, used by the integrity
+check). An optional `solution/` folder holds reference files, which are never
 returned by the API. The hw1 and hw2 specs are drafts for an instructor to check. Specs will later come from the
 curriculum designer, whose rubric format will need mapping in `spec.py`.
 

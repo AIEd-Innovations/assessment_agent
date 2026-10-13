@@ -48,6 +48,8 @@ async def assess_submission(request: AssessmentRequest) -> AssessmentResult:
     reasons = list(grading.review_reasons)
     if anomaly.overall_risk in ("medium", "high"):
         reasons.append(f"The integrity check rated the risk as {anomaly.overall_risk}.")
+    if any(f.flag_type == "prompt_injection" for f in anomaly.flags):
+        reasons.append("The integrity check found text aimed at influencing the grade.")
 
     result = AssessmentResult(
         student_id=request.student_id,

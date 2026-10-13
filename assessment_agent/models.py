@@ -23,7 +23,7 @@ class CriterionScore(BaseModel):
 
 
 class AnomalyFlag(BaseModel):
-    flag_type: str  # "style_change", "plagiarism", "ai_generated", "complexity_mismatch"
+    flag_type: str  # "style_change", "plagiarism", "ai_generated", "complexity_mismatch", "prompt_injection"
     confidence: float = 0.0  # 0.0 - 1.0
     evidence: str = ""
     severity: str = "low"  # low, medium, high
