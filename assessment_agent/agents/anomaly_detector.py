@@ -76,7 +76,10 @@ async def detect_anomalies(
         "anomaly_detection",
         assignment_id=spec.assignment_id,
         course_id=config.COURSE_ID,
-        grading_guidance=spec.guidance or "",
+        title=spec.title or spec.assignment_id,
+        description=spec.description or "Not provided.",
+        skill_level=spec.skill_level or "Not specified; judge from the task and guidance.",
+        grading_guidance=spec.guidance or "None.",
         metrics=metrics,
         boundary=boundary,
         submission_block=submission_block,
@@ -88,7 +91,7 @@ async def detect_anomalies(
         report = AnomalyReport(
             flags=[
                 AnomalyFlag(
-                    flag_type=f.get("flag_type", "unknown"),
+                    flag_type=str(f.get("flag_type", "unknown")).lower(),
                     confidence=min(max(float(f.get("confidence", 0)), 0), 1),
                     evidence=f.get("evidence", ""),
                     severity=f.get("severity", "low"),
