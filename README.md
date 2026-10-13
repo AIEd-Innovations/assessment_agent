@@ -1,8 +1,16 @@
 # Assessment Agent
 
-FastAPI service in the AIEIC Lab Multi-Agent System. Grades student submissions (code + optional report), flags anomalies,
-generates feedback, and queues submissions for instructor review. Grading is **synchronous**: each submission makes several
-LLM calls, so expect tens of seconds per student with a real provider.
+FastAPI service in the AIEIC Lab Multi-Agent System. Grades a submission (any number of UTF-8 text files, in any
+language) against the assignment's rubric with one LLM call, and runs an integrity check alongside it. Nothing is
+executed. Grading is **synchronous**: several seconds to tens of seconds per student with a real provider.
+
+## How grading works
+1. Load the assignment's spec: rubric criteria with `max_points`, guidance and an optional reference solution.
+2. One LLM call scores every criterion and writes the feedback. An unusable response is retried once.
+3. `score` is the sum of the criterion scores, out of `max_score`.
+4. `status` is `needs_review` (with `review_reasons`) if grading failed, the grader was unsure, the submission was
+   truncated or the integrity risk is medium or high; otherwise `ai_graded`. An instructor's `final_score` replaces
+   `score` and sets the status to `instructor_graded`.
 
 ## Run locally
 
@@ -10,6 +18,7 @@ LLM calls, so expect tens of seconds per student with a real provider.
 python3 -m venv .venv && source .venv/bin/activate
 pip install -r requirements.txt
 python run.py            # http://localhost:8000  (API docs at /docs)
+python demo/run_demo.py  # grade the demo submissions from the command line
 ```
 
 ### LLM provider (`DEFAULT_LLM_PROVIDER`)
@@ -17,7 +26,7 @@ python run.py            # http://localhost:8000  (API docs at /docs)
 |---|---|---|
 | `claude_cli` (default) | the `claude` CLI installed and logged in | shells out per call |
 | `anthropic` | `ANTHROPIC_API_KEY` | model is hard-coded in `llm/anthropic_api.py` |
-| `fake` | nothing | offline canned responses; scores come from exact-match test execution only. For demos and UI development |
+| `fake` | nothing | offline canned responses: every criterion gets 80%. For demos and UI development |
 
 Settings can go in a `.env` file (loaded at startup) or the shell environment:
 
@@ -26,11 +35,17 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | `DEFAULT_LLM_PROVIDER` | `claude_cli` | see above |
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
 | `ANTHROPIC_API_KEY` | none | for `anthropic` |
-| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, the review queue and anomaly reports are written |
+| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results and anomaly reports are written |
 
 **Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
 local Vite dev server, so a deployed UI would be blocked by the browser even though the agent is healthy. `DATA_DIR` is created at startup and the
 agent refuses to start if it cannot write there (in Docker the process runs as uid 1000, so a bind-mounted host folder must be writable by that user).
+
+## Grading specs
+`assessment_agent/assignments/<assignment_id>/spec.json` holds `title`, `description`, `criteria` (`id`, `name`,
+`description`, `max_points`) and `guidance`. An optional `solution/` folder holds reference files, which are never
+returned by the API. The hw1 and hw2 specs are drafts for an instructor to check. Specs will later come from the
+curriculum designer, whose rubric format will need mapping in `spec.py`.
 
 ### Seed data for UI development
 Results are stored as JSON files in the repo root (gitignored). To have something to list without grading anything:
@@ -39,8 +54,7 @@ Results are stored as JSON files in the repo root (gitignored). To have somethin
 cp demo/seed_results.json assessment_results.json
 curl "localhost:8000/results?assignment_id=hw1_sorting"
 ```
-`demo/seed_results.json` was produced by running the demo submissions through the real pipeline with the `fake` provider;
-two records were then edited by hand (one high-risk anomaly, one high review priority) so the UI has varied statuses.
+`demo/seed_results.json` was made with the `fake` provider and edited by hand to cover each status.
 
 ## Docker
 ```bash
@@ -54,22 +68,24 @@ The image runs as an unprivileged user and writes results to `/appdata` (mount a
 | Method and path | Purpose |
 |---|---|
 | `GET /health` | health check |
-| `POST /submit` | multipart: `student_id`, `assignment_id`, `code_file?`, `report_file?` (UTF-8 text) |
-| `POST /submit-json` | JSON: `student_id`, `assignment_id`, `code?`, `report?` |
-| `GET /assignments`, `/assignments/{id}/test-cases`, `/assignments/{id}/rubric` | assignment definitions (files in `assessment_agent/assignments/`) |
-| `GET /results?student_id&assignment_id`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results |
-| `GET /review-queue`, `POST /review-queue/{submission_id}/complete` | instructor manual review (`instructor_score` 0-10, `notes`) |
+| `POST /submit` | multipart: `student_id`, `assignment_id`, one or more `files` (UTF-8 text) |
+| `POST /submit-json` | JSON: `student_id`, `assignment_id`, `files: [{filename, content}]` |
+| `GET /assignments`, `/assignments/{id}/rubric` | assignments with a spec; the rubric view never includes the solution |
+| `GET /results?student_id&assignment_id&status`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results |
+| `POST /results/{submission_id}/review` | JSON: `final_score` (0 to `max_score`) and `notes`; replaces the AI score |
 | `GET /anomalies?reviewed` | anomaly reports |
 
+Key result fields: `criteria` (per-criterion score, justification and evidence), `score`, `max_score`, `status`,
+`review_reasons`, `final_score` and `feedback`. The full shape is `AssessmentResult` in `models.py`.
+
 ## Known limitations (not yet addressed)
-- The submitted code and report text are not stored, only hashes.
+- Only UTF-8 text files are accepted, and only their names and a hash are stored.
+- Code is read, not run, so subtle bugs can be missed.
 - No regrade endpoint, no CSV export, no student names (only `student_id`), no authentication.
-- Assignments are files on disk; there is no API to create one and no reference-solution or quiz support.
-- Re-submitting a student appends a new result rather than replacing the old one.
-- The sandbox is a subprocess with an import blocklist, not strong isolation.
+- Specs are files on disk, and re-submitting appends a new result rather than replacing the old one.
 
 ## Tests
 ```bash
-pip install pytest pytest-asyncio
+pip install pytest pytest-asyncio httpx
 pytest
 ```
