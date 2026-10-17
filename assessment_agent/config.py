@@ -33,3 +33,16 @@ ANOMALY_REPORTS_FILE = os.path.join(DATA_DIR, "anomaly_reports.json")
 TEST_CASES_DIR = os.path.join(_PACKAGE_DIR, "test_cases")  # legacy location
 ASSIGNMENTS_DIR = os.path.join(_PACKAGE_DIR, "assignments")
 PROMPTS_DIR = os.path.join(_PACKAGE_DIR, "prompts")
+
+
+def ensure_data_dir() -> None:
+    """Create DATA_DIR if needed, and fail at startup (not after a slow grading run) if it cannot be written."""
+    try:
+        os.makedirs(DATA_DIR, exist_ok=True)
+    except OSError as e:
+        raise RuntimeError(f"Cannot create DATA_DIR {DATA_DIR!r}: {e}") from e
+    if not os.access(DATA_DIR, os.W_OK):
+        raise RuntimeError(
+            f"DATA_DIR {DATA_DIR!r} is not writable by the current user. If it is a mounted volume, "
+            "fix its ownership or permissions (the Docker image runs as uid 1000)."
+        )

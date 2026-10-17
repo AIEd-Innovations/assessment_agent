@@ -2,11 +2,13 @@ import os
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
+from assessment_agent import config
 from assessment_agent.api.routes import router
 
 
 def create_assessment_app() -> FastAPI:
     """Create the Assessment Agent FastAPI application."""
+    config.ensure_data_dir()
     app = FastAPI(
         title="AIEIC Assessment Agent",
         description=(

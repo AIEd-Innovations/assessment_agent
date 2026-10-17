@@ -28,6 +28,10 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | `ANTHROPIC_API_KEY` | none | for `anthropic` |
 | `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, the review queue and anomaly reports are written |
 
+**Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
+local Vite dev server, so a deployed UI would be blocked by the browser even though the agent is healthy. `DATA_DIR` is created at startup and the
+agent refuses to start if it cannot write there (in Docker the process runs as uid 1000, so a bind-mounted host folder must be writable by that user).
+
 ### Seed data for UI development
 Results are stored as JSON files in the repo root (gitignored). To have something to list without grading anything:
 
