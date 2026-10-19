@@ -10,7 +10,7 @@ from assessment_agent.models import (
     ProvenanceCollector,
     SubmissionFile,
 )
-from assessment_agent.llm import LLMProvider
+from assessment_agent.llm import LLMAuthError, LLMProvider
 from assessment_agent.spec import GradingSpec
 from assessment_agent.prompt_loader import load_prompt
 from assessment_agent import config
@@ -137,6 +137,8 @@ async def grade_submission(
         try:
             data, _raw, latency_ms = await provider.complete_with_raw(prompt)
             criteria, feedback, flags = parse_grading(data, spec)
+        except LLMAuthError:
+            raise
         except (GradingOutputError, json.JSONDecodeError) as exc:
             error = f"Unusable grading response: {exc}"
         except Exception:

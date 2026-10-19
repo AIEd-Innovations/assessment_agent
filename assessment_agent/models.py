@@ -85,6 +85,8 @@ class AssessmentResult(BaseModel):
     student_id: str
     assignment_id: str
     files: list[str] = []  # filenames only; submitted text is not stored
+    model: str = ""  # the model that graded it; "mock" when no API key was provided
+    mock: bool = False  # True when graded by the offline mock model: not a real assessment
     criteria: list[CriterionScore] = []
     score: Optional[float] = None  # sum of criterion scores; None when grading failed
     max_score: float = 0.0
