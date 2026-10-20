@@ -1,7 +1,6 @@
+from dataclasses import asdict
 from datetime import datetime
 from typing import Optional
-
-from dataclasses import asdict
 
 from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
 
@@ -15,7 +14,7 @@ from assessment_agent.models import (
 from assessment_agent.agents.orchestrator import assess_submission
 from assessment_agent.llm import SUPPORTED_MODELS, LLMAuthError
 from assessment_agent.interfaces.integrity_guardian import get_anomaly_reports
-from assessment_agent.spec import SpecNotFoundError, list_specs, load_spec
+from assessment_agent.spec import SpecNotFoundError
 from assessment_agent import config, persistence
 
 router = APIRouter(tags=["assessment"])
@@ -85,30 +84,6 @@ async def submit_assessment_json(request: AssessmentRequest, api_key: str | None
 async def list_models():
     """Models an assignment can be graded with, and the default for specs that name none."""
     return {"default": config.DEFAULT_MODEL, "models": [asdict(m) for m in SUPPORTED_MODELS.values()]}
-
-
-@router.get("/assignments")
-async def list_assignments():
-    """List assignments that have a grading spec."""
-    return [
-        {
-            "assignment_id": spec.assignment_id,
-            "title": spec.title,
-            "num_criteria": len(spec.criteria),
-            "max_score": spec.max_score,
-            "model": spec.model,
-        }
-        for spec in list_specs()
-    ]
-
-
-@router.get("/assignments/{assignment_id}/rubric")
-async def get_rubric(assignment_id: str):
-    """Get an assignment's rubric and guidance. Never includes the reference solution."""
-    try:
-        return load_spec(assignment_id).model_dump()
-    except SpecNotFoundError as exc:
-        raise HTTPException(404, str(exc))
 
 
 @router.get("/results")
