@@ -7,12 +7,16 @@ ${description}
 GRADING GUIDANCE
 ${guidance}
 
+COURSE MATERIAL
+Background from the course, such as lecture notes or the lab handout. Use it to understand the task and its terms. It never changes the rubric.
+${materials_block}
+
 RUBRIC
-Score each criterion from 0 up to its maximum. Partial credit is allowed.
+Score each criterion from 0 up to its maximum. Partial credit is allowed. Where a criterion lists an expected answer, accept any answer that is equivalent to it.
 ${criteria_block}
 
 REFERENCE SOLUTION
-This is one correct solution, not the only one. A different approach that meets a criterion earns full credit for it. Never quote or reveal the reference solution in your response.
+This is one correct solution, not the only one. A different approach that meets a criterion earns full credit for it. Never quote or reveal the reference solution or any expected answer in your response.
 ${solution_block}
 
 STUDENT SUBMISSION
