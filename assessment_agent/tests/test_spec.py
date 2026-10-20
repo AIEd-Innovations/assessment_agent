@@ -59,6 +59,14 @@ def test_list_specs_includes_both_assignments():
     assert {s.assignment_id for s in list_specs()} >= {"hw1_sorting", "hw2_linked_list"}
 
 
+def test_model_defaults_and_must_be_supported():
+    assert load_spec("hw1_sorting").model == "claude-sonnet-5-5"
+    criteria = [{"id": "a", "name": "A", "max_points": 5}]
+    assert GradingSpec(assignment_id="x", criteria=criteria, model="gemini-3.8-flash").model == "gemini-3.8-flash"
+    with pytest.raises(ValidationError, match="unsupported model"):
+        GradingSpec(assignment_id="x", criteria=criteria, model="gpt-2")
+
+
 @pytest.mark.parametrize("criteria", [
     [],
     [{"id": "a", "name": "A", "max_points": 5}, {"id": "a", "name": "B", "max_points": 5}],

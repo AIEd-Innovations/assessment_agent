@@ -27,7 +27,7 @@ def _record(stage="grading", success=True) -> LLMCallRecord:
 async def _run(provider, *files, assignment_id="hw1_sorting"):
     request = AssessmentRequest(student_id="s1", assignment_id=assignment_id, files=list(files))
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=provider):
-        return await assess_submission(request)
+        return await assess_submission(request, api_key="sk-test")
 
 
 # ---------------------------------------------------------------------------
