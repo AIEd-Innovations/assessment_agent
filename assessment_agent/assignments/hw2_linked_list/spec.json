@@ -1,0 +1,32 @@
+{
+  "title": "HW2: Linked List Implementation",
+  "description": "Implement a singly linked list with insert, delete, search and display operations. The program reads one command per line from standard input: \"insert X\" appends X, \"delete X\" removes the first X (no output, and nothing happens if X is absent), \"search X\" prints \"Found\" or \"Not Found\", and \"display\" prints the values joined by \" -> \" and ending in \"None\" (an empty list prints \"None\"). For example, insert 1, insert 2, insert 3, delete 2, display prints \"1 -> 3 -> None\"; insert 10, insert 20, search 99 prints \"Not Found\"; delete 5, display prints \"None\"; and insert 1 three times, then display, prints \"1 -> 1 -> 1 -> None\".",
+  "criteria": [
+    {
+      "id": "correctness",
+      "name": "Implementation Correctness",
+      "max_points": 35,
+      "description": "insert, delete, search and display all behave as specified."
+    },
+    {
+      "id": "edge_cases",
+      "name": "Edge Case Handling",
+      "max_points": 25,
+      "description": "Handles an empty list, a single node, deleting the head, deleting a missing value and duplicate values."
+    },
+    {
+      "id": "structure",
+      "name": "Code Structure",
+      "max_points": 20,
+      "description": "Clean class design with proper use of a Node class and a LinkedList class."
+    },
+    {
+      "id": "complexity",
+      "name": "Time Complexity",
+      "max_points": 20,
+      "description": "Operations run in O(n) or better."
+    }
+  ],
+  "guidance": "This is a data structures assignment, so students must implement the list from scratch. Using Python's built-in list or collections.deque to store the elements is not acceptable and should be heavily penalized. Give partial credit for operations that work on basic cases but fail edge cases. Value clear naming and docstrings, but do not over-penalize style. Students should demonstrate an understanding of pointer manipulation.",
+  "skill_level": "Basic Python, including classes and loops. This is the first data structure students build from scratch; recursion and third-party libraries are not expected."
+}

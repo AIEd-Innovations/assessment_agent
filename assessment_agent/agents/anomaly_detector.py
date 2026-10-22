@@ -2,10 +2,11 @@ import ast
 import json
 import logging
 
-from assessment_agent.models import AnomalyReport, AnomalyFlag, LLMCallRecord, ProvenanceCollector
+from assessment_agent.models import AnomalyReport, AnomalyFlag, LLMCallRecord, ProvenanceCollector, SubmissionFile
 from assessment_agent.llm import LLMProvider
-from assessment_agent.rubric import AssignmentRubric
-from assessment_agent.prompt_loader import load_prompt_with_hash
+from assessment_agent.spec import GradingSpec
+from assessment_agent.prompt_loader import load_prompt
+from assessment_agent.agents.grader import format_files, new_boundary
 from assessment_agent import config
 
 logger = logging.getLogger(__name__)
@@ -60,68 +61,53 @@ def extract_style_metrics(code: str) -> dict:
 
 
 async def detect_anomalies(
-    code: str,
-    student_id: str = "",
-    rubric: AssignmentRubric | None = None,
-    provider: LLMProvider | None = None,
+    files: list[SubmissionFile],
+    spec: GradingSpec,
+    provider: LLMProvider,
     collector: ProvenanceCollector | None = None,
 ) -> AnomalyReport:
-    """Analyze code for style anomalies and potential academic integrity issues."""
-    if rubric is None:
-        from assessment_agent.rubric import default_rubric
-        rubric = default_rubric()
-    if provider is None:
-        from assessment_agent.llm import get_llm_provider
-        provider = get_llm_provider()
+    """Analyze a submission for style anomalies and potential academic integrity issues."""
+    python_code = "\n".join(f.content for f in files if f.filename.endswith(".py"))
+    metrics = json.dumps(extract_style_metrics(python_code), indent=2) if python_code else "None (no Python files)."
+    submission_block, _ = format_files(files, config.MAX_SUBMISSION_CHARS)
+    boundary = new_boundary()
 
-    metrics = extract_style_metrics(code)
-
-    prompt, prompt_hash = load_prompt_with_hash(
+    prompt = load_prompt(
         "anomaly_detection",
-        assignment_id=rubric.assignment_id,
+        assignment_id=spec.assignment_id,
         course_id=config.COURSE_ID,
-        grading_guidance=rubric.guidance or "",
-        metrics=json.dumps(metrics, indent=2),
-        code=code[:config.MAX_CODE_CHARS],
+        title=spec.title or spec.assignment_id,
+        description=spec.description or "Not provided.",
+        skill_level=spec.skill_level or "Not specified; judge from the task and guidance.",
+        grading_guidance=spec.guidance or "None.",
+        metrics=metrics,
+        boundary=boundary,
+        submission_block=submission_block,
     )
 
+    latency_ms, error = 0, ""
     try:
-        result, raw, latency_ms = await provider.complete_with_raw(prompt)
-        if collector is not None:
-            collector.add_call(LLMCallRecord(
-                stage="anomaly_detection",
-                model_id=provider.model_id,
-                prompt_hash=prompt_hash,
-                prompt_text=prompt,
-                raw_response=raw,
-                latency_ms=latency_ms,
-            ))
+        result, _raw, latency_ms = await provider.complete_with_raw(prompt)
+        report = AnomalyReport(
+            flags=[
+                AnomalyFlag(
+                    flag_type=str(f.get("flag_type", "unknown")).lower(),
+                    confidence=min(max(float(f.get("confidence", 0)), 0), 1),
+                    evidence=f.get("evidence", ""),
+                    severity=f.get("severity", "low"),
+                )
+                for f in result.get("flags", [])
+            ],
+            overall_risk=str(result.get("overall_risk", "low")).lower(),
+            recommendation=result.get("recommendation", ""),
+        )
     except Exception:
         logger.warning("Anomaly detection failed", exc_info=True)
-        if collector is not None:
-            collector.add_call(LLMCallRecord(
-                stage="anomaly_detection",
-                model_id=getattr(provider, "model_id", "unknown"),
-                prompt_hash=prompt_hash,
-                prompt_text=prompt,
-                raw_response="",
-                latency_ms=0,
-                success=False,
-                error="Anomaly detection failed",
-            ))
-        return AnomalyReport(recommendation="Failed to analyze submission.")
+        error = "Anomaly detection failed"
+        report = AnomalyReport(recommendation="Failed to analyze submission.")
 
-    flags = []
-    for f in result.get("flags", []):
-        flags.append(AnomalyFlag(
-            flag_type=f.get("flag_type", "unknown"),
-            confidence=min(max(float(f.get("confidence", 0)), 0), 1),
-            evidence=f.get("evidence", ""),
-            severity=f.get("severity", "low"),
+    if collector is not None:
+        collector.add_call(LLMCallRecord(
+            stage="anomaly_detection", latency_ms=latency_ms, success=not error, error=error,
         ))
-
-    return AnomalyReport(
-        flags=flags,
-        overall_risk=result.get("overall_risk", "low"),
-        recommendation=result.get("recommendation", ""),
-    )
+    return report
