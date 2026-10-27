@@ -33,6 +33,5 @@
       "description": "The report gives a correct time complexity and discusses edge cases."
     }
   ],
-  "guidance": "Be encouraging but rigorous. Using the built-in sort is expected and should not be penalized. Focus feedback on algorithmic understanding, not code style. This is an introductory assignment, so set expectations accordingly.",
-  "skill_level": "Introductory: reading input, lists, loops, simple functions and built-in functions such as sorted(). Classes, recursion and third-party libraries are not expected."
+  "guidance": "Be encouraging but rigorous. Using the built-in sort is expected and should not be penalized. Focus feedback on algorithmic understanding, not code style. This is an introductory assignment, so set expectations accordingly."
 }

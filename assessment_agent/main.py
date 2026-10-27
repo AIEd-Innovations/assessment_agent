@@ -3,6 +3,7 @@ import os
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from assessment_agent import config
+from assessment_agent.api.assignment_routes import router as assignment_router
 from assessment_agent.api.routes import router
 
 
@@ -14,8 +15,8 @@ def create_assessment_app() -> FastAPI:
         description=(
             "Automated assessment agent for CSC 580 lab submissions. "
             "Part of the AIEIC Lab Agentic Design Framework. "
-            "Handles code grading, report evaluation, anomaly detection, "
-            "and personalized feedback generation."
+            "Grades submissions against instructor-provided rubrics and "
+            "writes feedback."
         ),
         version="0.1.0",
     )
@@ -36,6 +37,7 @@ def create_assessment_app() -> FastAPI:
     )
 
     app.include_router(router)
+    app.include_router(assignment_router)
 
     @app.get("/health")
     async def health():

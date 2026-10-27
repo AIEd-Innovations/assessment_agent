@@ -22,19 +22,6 @@ class CriterionScore(BaseModel):
     evidence: str = ""
 
 
-class AnomalyFlag(BaseModel):
-    flag_type: str  # "style_change", "plagiarism", "ai_generated", "complexity_mismatch", "prompt_injection"
-    confidence: float = 0.0  # 0.0 - 1.0
-    evidence: str = ""
-    severity: str = "low"  # low, medium, high
-
-
-class AnomalyReport(BaseModel):
-    flags: list[AnomalyFlag] = []
-    overall_risk: str = "low"  # low, medium, high
-    recommendation: str = ""
-
-
 class FeedbackReport(BaseModel):
     summary: str = ""
     strengths: list[str] = []
@@ -91,7 +78,6 @@ class AssessmentResult(BaseModel):
     score: Optional[float] = None  # sum of criterion scores; None when grading failed
     max_score: float = 0.0
     feedback: Optional[FeedbackReport] = None
-    anomaly_report: Optional[AnomalyReport] = None
     status: ResultStatus = "ai_graded"
     review_reasons: list[str] = []
     final_score: Optional[float] = None  # set by an instructor; replaces score

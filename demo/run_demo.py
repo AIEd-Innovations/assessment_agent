@@ -4,7 +4,7 @@ AIEIC Assessment Agent — Demo Script
 Grades the four demo submissions for hw1_sorting and prints the results:
   1. Alice  — correct code + report
   2. Bob    — buggy code (lexicographic sort)
-  3. Carol  — suspiciously advanced code (integrity check)
+  3. Carol  — unusually advanced code
   4. Diana  — partial solution (bubble sort with a bare except)
 
 Run with the mock model (no key), or grade for real with a key for hw1's model:

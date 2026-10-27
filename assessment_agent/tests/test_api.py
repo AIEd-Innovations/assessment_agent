@@ -175,7 +175,7 @@ def test_provenance_endpoint(data_dir: Path, submissions):
     submission_id = submit((code.filename, code.content.encode())).json()["submission_id"]
     prov = client.get(f"/results/{submission_id}/provenance").json()
     assert prov["spec_hash"]
-    assert {c["stage"] for c in prov["llm_calls"]} == {"grading", "anomaly_detection"}
+    assert [c["stage"] for c in prov["llm_calls"]] == ["grading"]
 
 
 def test_provenance_missing_on_old_results(data_dir: Path):

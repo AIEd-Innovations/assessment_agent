@@ -25,16 +25,13 @@ def data_dir(tmp_path: Path):
     os.environ["DATA_DIR"] = str(tmp_path)
 
     import assessment_agent.config as cfg
-    import assessment_agent.interfaces.integrity_guardian as ig
-    saved = (cfg.DATA_DIR, cfg.RESULTS_FILE, cfg.ANOMALY_REPORTS_FILE, ig.ANOMALY_REPORTS_FILE)
-    cfg.DATA_DIR             = str(tmp_path)
-    cfg.RESULTS_FILE         = str(tmp_path / "assessment_results.json")
-    cfg.ANOMALY_REPORTS_FILE = str(tmp_path / "anomaly_reports.json")
-    ig.ANOMALY_REPORTS_FILE  = cfg.ANOMALY_REPORTS_FILE
+    saved = (cfg.DATA_DIR, cfg.RESULTS_FILE)
+    cfg.DATA_DIR     = str(tmp_path)
+    cfg.RESULTS_FILE = str(tmp_path / "assessment_results.json")
 
     yield tmp_path
 
-    cfg.DATA_DIR, cfg.RESULTS_FILE, cfg.ANOMALY_REPORTS_FILE, ig.ANOMALY_REPORTS_FILE = saved
+    cfg.DATA_DIR, cfg.RESULTS_FILE = saved
     if old is None:
         os.environ.pop("DATA_DIR", None)
     else:
@@ -53,3 +50,49 @@ def submissions() -> dict[str, SubmissionFile]:
         "suspicious_code": read("student_c_suspicious.py"),
         "partial_code":    read("student_d_partial.py"),
     }
+
+
+def _pdf(text: str) -> bytes:
+    """A one-page PDF whose text layer is `text` (empty text makes a PDF with nothing to extract)."""
+    stream = f"BT /F1 12 Tf 72 720 Td ({text}) Tj ET".encode() if text else b""
+    objects = [
+        b"<< /Type /Catalog /Pages 2 0 R >>",
+        b"<< /Type /Pages /Kids [3 0 R] /Count 1 >>",
+        b"<< /Type /Page /Parent 2 0 R /MediaBox [0 0 612 792] /Contents 4 0 R"
+        b" /Resources << /Font << /F1 5 0 R >> >> >>",
+        b"<< /Length %d >>\nstream\n" % len(stream) + stream + b"\nendstream",
+        b"<< /Type /Font /Subtype /Type1 /BaseFont /Helvetica >>",
+    ]
+    out = b"%PDF-1.4\n"
+    offsets = []
+    for number, body in enumerate(objects, 1):
+        offsets.append(len(out))
+        out += b"%d 0 obj\n" % number + body + b"\nendobj\n"
+    xref = len(out)
+    out += b"xref\n0 %d\n0000000000 65535 f \n" % (len(objects) + 1)
+    out += b"".join(b"%010d 00000 n \n" % offset for offset in offsets)
+    out += b"trailer\n<< /Size %d /Root 1 0 R >>\nstartxref\n%d\n%%%%EOF\n" % (len(objects) + 1, xref)
+    return out
+
+
+def _docx(*paragraphs: str) -> bytes:
+    import io
+
+    import docx
+
+    document = docx.Document()
+    for paragraph in paragraphs:
+        document.add_paragraph(paragraph)
+    buffer = io.BytesIO()
+    document.save(buffer)
+    return buffer.getvalue()
+
+
+@pytest.fixture
+def make_pdf():
+    return _pdf
+
+
+@pytest.fixture
+def make_docx():
+    return _docx

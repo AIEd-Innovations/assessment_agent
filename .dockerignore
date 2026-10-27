@@ -6,5 +6,4 @@ __pycache__/
 .pytest_cache/
 assessment_results.json
 review_queue.json
-anomaly_reports.json
 *.lock
