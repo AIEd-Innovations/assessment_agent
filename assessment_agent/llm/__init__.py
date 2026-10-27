@@ -1,82 +1,31 @@
 """
-LLM provider package -- provider-agnostic interface for LLM inference.
-
-Quick start
------------
-::
-
-    from assessment_agent.llm import get_llm_provider
-
-    provider = get_llm_provider()           # default: claude_cli
-    result   = await provider.complete_json(prompt)
-
-For backward compatibility the top-level ``claude_json`` helper is still
-available and works exactly as before::
-
-    from assessment_agent.llm import claude_json
-    data = await claude_json(prompt)
+LLM providers. Each grading request names a model (from the assignment's spec)
+and may carry the teacher's API key for that model's vendor.
 """
 from __future__ import annotations
 
-import os
-from typing import TYPE_CHECKING
+from .base import LLMAuthError, LLMProvider, extract_json
+from .models import SUPPORTED_MODELS
 
-from .base import LLMProvider, extract_json
-
-if TYPE_CHECKING:
-    pass
-
-__all__ = [
-    "LLMProvider",
-    "extract_json",
-    "get_llm_provider",
-    "claude_json",
-]
+__all__ = ["LLMAuthError", "LLMProvider", "SUPPORTED_MODELS", "extract_json", "get_llm_provider"]
 
 
-def get_llm_provider(provider_name: str | None = None) -> LLMProvider:
-    """
-    Factory that returns an :class:`LLMProvider` instance.
-
-    Parameters
-    ----------
-    provider_name:
-        ``"claude_cli"`` (default), ``"anthropic"`` or ``"fake"`` (offline canned responses).
-        When *None*, falls back to the ``DEFAULT_LLM_PROVIDER`` env var,
-        then to ``"claude_cli"``.
-    """
-    if provider_name is None:
-        provider_name = os.environ.get("DEFAULT_LLM_PROVIDER", "claude_cli")
-
-    if provider_name == "claude_cli":
-        from .claude_cli import ClaudeCLIProvider
-
-        return ClaudeCLIProvider()
-
-    if provider_name == "anthropic":
-        from .anthropic_api import AnthropicAPIProvider
-
-        return AnthropicAPIProvider()
-
-    if provider_name == "fake":
+def get_llm_provider(model: str, api_key: str | None) -> LLMProvider:
+    """Return a provider for the model, or the offline mock when there is no API key."""
+    if not api_key:
         from .fake import FakeLLMProvider
 
         return FakeLLMProvider()
 
-    raise ValueError(
-        f"Unknown LLM provider {provider_name!r}. "
-        f"Supported values: 'claude_cli', 'anthropic', 'fake'."
-    )
+    vendor = SUPPORTED_MODELS[model].vendor
+    if vendor == "anthropic":
+        from .anthropic_api import AnthropicProvider
 
+        return AnthropicProvider(model, api_key)
+    if vendor == "openai":
+        from .openai_api import OpenAIProvider
 
-async def claude_json(prompt: str) -> dict:
-    """
-    Backward-compatible helper: call the Claude CLI and parse JSON.
+        return OpenAIProvider(model, api_key)
+    from .gemini_api import GeminiProvider
 
-    This is a drop-in replacement for the old ``assessment_agent.llm.claude_json``
-    function. New code should use :func:`get_llm_provider` instead.
-    """
-    from .claude_cli import ClaudeCLIProvider
-
-    provider = ClaudeCLIProvider()
-    return await provider.complete_json(prompt)
+    return GeminiProvider(model, api_key)

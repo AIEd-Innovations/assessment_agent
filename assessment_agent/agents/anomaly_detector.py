@@ -3,7 +3,7 @@ import json
 import logging
 
 from assessment_agent.models import AnomalyReport, AnomalyFlag, LLMCallRecord, ProvenanceCollector, SubmissionFile
-from assessment_agent.llm import LLMProvider
+from assessment_agent.llm import LLMAuthError, LLMProvider
 from assessment_agent.spec import GradingSpec
 from assessment_agent.prompt_loader import load_prompt
 from assessment_agent.agents.grader import format_files, new_boundary
@@ -101,6 +101,8 @@ async def detect_anomalies(
             overall_risk=str(result.get("overall_risk", "low")).lower(),
             recommendation=result.get("recommendation", ""),
         )
+    except LLMAuthError:
+        raise
     except Exception:
         logger.warning("Anomaly detection failed", exc_info=True)
         error = "Anomaly detection failed"

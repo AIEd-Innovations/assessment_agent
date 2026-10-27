@@ -1,36 +1,73 @@
 import json
 from pathlib import Path
+from unittest.mock import patch
 
 import pytest
 from fastapi.testclient import TestClient
 
 from assessment_agent import config
+from assessment_agent.llm import LLMAuthError
+from assessment_agent.llm.fake import FakeLLMProvider
 from run import app
 
 client = TestClient(app)
 
 
-@pytest.fixture(autouse=True)
-def fake_llm(monkeypatch):
-    monkeypatch.setenv("DEFAULT_LLM_PROVIDER", "fake")
+class SonnetProvider(FakeLLMProvider):
+    model_id = "claude-sonnet-5-5"
 
 
-def submit(*files, student_id="s1", assignment_id="hw1_sorting"):
+class RejectedKeyProvider(FakeLLMProvider):
+    async def complete_with_raw(self, prompt: str):
+        raise LLMAuthError("The Anthropic API key was rejected.")
+
+
+def submit(*files, student_id="s1", assignment_id="hw1_sorting", headers=None):
     return client.post(
         "/submit",
         data={"student_id": student_id, "assignment_id": assignment_id},
         files=[("files", f) for f in files],
+        headers=headers,
     )
 
 
 def test_multipart_submission_with_several_files(submissions):
     code, report = submissions["perfect_code"], submissions["report"]
-    resp = submit((code.filename, code.content.encode()), (report.filename, report.content.encode()))
+    with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=SonnetProvider()) as factory:
+        resp = submit(
+            (code.filename, code.content.encode()), (report.filename, report.content.encode()),
+            headers={"X-LLM-API-Key": "sk-test"},
+        )
     assert resp.status_code == 200
+    factory.assert_called_once_with("claude-sonnet-5-5", "sk-test")
     body = resp.json()
     assert body["files"] == [code.filename, report.filename]
-    assert body["status"] == "ai_graded"
+    assert (body["status"], body["mock"], body["model"]) == ("ai_graded", False, "claude-sonnet-5-5")
     assert body["score"] == 80
+
+
+def test_submission_without_a_key_is_a_marked_mock_grade(submissions):
+    code = submissions["perfect_code"]
+    body = submit((code.filename, code.content.encode())).json()
+    assert body["mock"] is True
+    assert body["model"] == "mock"
+    assert body["status"] == "needs_review"
+    assert body["review_reasons"][0].startswith("No API key was provided")
+
+
+def test_rejected_key_is_401_and_nothing_is_saved(data_dir: Path, submissions):
+    code = submissions["perfect_code"]
+    with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=RejectedKeyProvider()):
+        resp = submit((code.filename, code.content.encode()), headers={"X-LLM-API-Key": "sk-bad"})
+    assert resp.status_code == 401
+    assert "rejected" in resp.json()["detail"]
+    assert not (data_dir / "assessment_results.json").exists()
+
+
+def test_models_list():
+    body = client.get("/models").json()
+    assert body["default"] == config.DEFAULT_MODEL
+    assert {m["vendor"] for m in body["models"]} == {"anthropic", "openai", "gemini"}
 
 
 def test_json_submission():
@@ -67,8 +104,9 @@ def test_binary_upload_is_rejected():
 
 
 def test_assignments_list():
-    ids = {a["assignment_id"] for a in client.get("/assignments").json()}
-    assert {"hw1_sorting", "hw2_linked_list"} <= ids
+    assignments = {a["assignment_id"]: a for a in client.get("/assignments").json()}
+    assert {"hw1_sorting", "hw2_linked_list"} <= set(assignments)
+    assert assignments["hw1_sorting"]["model"] == config.DEFAULT_MODEL
 
 
 def test_rubric_never_includes_the_solution():

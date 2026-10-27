@@ -20,6 +20,7 @@ from pathlib import Path
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from assessment_agent import config
+from assessment_agent.llm.models import SUPPORTED_MODELS
 from assessment_agent.models import SubmissionFile
 
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
@@ -39,8 +40,16 @@ class GradingSpec(BaseModel):
     criteria: list[Criterion]
     guidance: str = ""
     skill_level: str = ""  # what students are expected to know by this assignment
+    model: str = config.DEFAULT_MODEL  # every submission for the assignment is graded by this model
     # Excluded from model_dump(), so the solution never reaches an API response.
     reference_solution: list[SubmissionFile] = Field(default=[], exclude=True)
+
+    @field_validator("model")
+    @classmethod
+    def _check_model(cls, model: str) -> str:
+        if model not in SUPPORTED_MODELS:
+            raise ValueError(f"unsupported model {model!r}; choose one of {', '.join(SUPPORTED_MODELS)}")
+        return model
 
     @field_validator("criteria")
     @classmethod

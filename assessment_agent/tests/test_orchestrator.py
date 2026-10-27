@@ -56,7 +56,7 @@ def make_request(*files, assignment_id="hw1_sorting") -> AssessmentRequest:
 
 async def run(request, provider):
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=provider):
-        return await assess_submission(request)
+        return await assess_submission(request, api_key="sk-test")
 
 
 async def test_code_submission_is_graded(fake_provider, submissions):

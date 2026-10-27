@@ -1,5 +1,6 @@
 import asyncio
 import hashlib
+import logging
 
 from assessment_agent.models import (
     AssessmentResult,
@@ -14,6 +15,16 @@ from assessment_agent.llm import get_llm_provider
 from assessment_agent.spec import load_spec_with_hash
 
 
+logger = logging.getLogger(__name__)
+
+
+def mock_reason(model: str) -> str:
+    return (
+        "No API key was provided, so this is a mock grade from the offline test model, not a real "
+        f"assessment. Grade it again with an API key for {model}."
+    )
+
+
 def hash_files(files: list[SubmissionFile]) -> str:
     digest = hashlib.sha256()
     for f in files:
@@ -21,7 +32,7 @@ def hash_files(files: list[SubmissionFile]) -> str:
     return digest.hexdigest()
 
 
-async def assess_submission(request: AssessmentRequest) -> AssessmentResult:
+async def assess_submission(request: AssessmentRequest, api_key: str | None = None) -> AssessmentResult:
     """
     Grade a submission against its assignment's spec.
 
@@ -30,22 +41,36 @@ async def assess_submission(request: AssessmentRequest) -> AssessmentResult:
     scores. Anything the grader is unsure of, or a medium/high integrity risk,
     marks the result for instructor review.
 
-    Raises SpecNotFoundError if the assignment has no spec.
+    The assignment's spec names the model; api_key is the teacher's key for that
+    model's vendor. Without a key the offline mock model grades it, and the
+    result is marked as a mock grade.
+
+    Raises SpecNotFoundError if the assignment has no spec, and LLMAuthError if
+    the provider rejects the key.
     """
     spec, spec_hash = load_spec_with_hash(request.assignment_id)
-    provider = get_llm_provider()
+    mock = not api_key
+    if mock:
+        logger.warning("No API key for %s: grading with the mock model", request.assignment_id)
+    provider = get_llm_provider(spec.model, api_key)
     collector = ProvenanceCollector(
         model_id=provider.model_id,
         spec_hash=spec_hash,
         submission_hash=hash_files(request.files),
     )
 
-    grading, anomaly = await asyncio.gather(
+    outcomes = await asyncio.gather(
         grade_submission(spec, request.files, provider, collector),
         detect_anomalies(request.files, spec, provider, collector),
+        return_exceptions=True,
     )
+    for outcome in outcomes:
+        if isinstance(outcome, BaseException):
+            raise outcome
+    grading, anomaly = outcomes
 
-    reasons = list(grading.review_reasons)
+    reasons = [mock_reason(spec.model)] if mock else []
+    reasons += grading.review_reasons
     if anomaly.overall_risk in ("medium", "high"):
         reasons.append(f"The integrity check rated the risk as {anomaly.overall_risk}.")
     if any(f.flag_type == "prompt_injection" for f in anomaly.flags):
@@ -55,6 +80,8 @@ async def assess_submission(request: AssessmentRequest) -> AssessmentResult:
         student_id=request.student_id,
         assignment_id=request.assignment_id,
         files=[f.filename for f in request.files],
+        model=provider.model_id,
+        mock=mock,
         criteria=grading.criteria,
         score=total_score(grading.criteria) if grading.succeeded else None,
         max_score=spec.max_score,

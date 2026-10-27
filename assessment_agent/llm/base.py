@@ -4,7 +4,8 @@ Base protocol and shared utilities for LLM providers.
 from __future__ import annotations
 
 import json
-from typing import Protocol
+import time
+from typing import Awaitable, Protocol
 
 
 class LLMProvider(Protocol):
@@ -12,22 +13,21 @@ class LLMProvider(Protocol):
 
     model_id: str
 
-    async def complete(self, prompt: str, system: str = "") -> str:
-        """Send a prompt and return the raw text response."""
+    async def complete_with_raw(self, prompt: str) -> tuple[dict, str, int]:
+        """Send a prompt and return (parsed_json, raw_response_text, latency_ms)."""
         ...
 
-    async def complete_with_raw(self, prompt: str, system: str = "") -> tuple[dict, str, int]:
-        """Send a prompt and return (parsed_json, raw_response_text, latency_ms).
 
-        Raw response is captured before extract_json strips it — use this for
-        provenance. latency_ms is wall-clock time of the complete() call.
-        complete_json() delegates to this.
-        """
-        ...
+class LLMAuthError(Exception):
+    """The provider rejected the API key. Grading cannot continue with this key."""
 
-    async def complete_json(self, prompt: str, system: str = "") -> dict:
-        """Send a prompt and return the response parsed as JSON."""
-        ...
+
+async def timed_json(response: Awaitable[str]) -> tuple[dict, str, int]:
+    """Await a provider's text response and return (parsed_json, raw_text, latency_ms)."""
+    start = time.monotonic()
+    raw = await response
+    latency_ms = int((time.monotonic() - start) * 1000)
+    return extract_json(raw), raw, latency_ms
 
 
 def extract_json(text: str) -> dict:

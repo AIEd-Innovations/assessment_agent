@@ -1,7 +1,7 @@
 """
-Offline LLM provider with canned responses, for running the agent without the
-`claude` CLI or an API key (demos, UI development). Select it with
-DEFAULT_LLM_PROVIDER=fake. Every criterion gets 80% of its points.
+Offline mock model with canned responses, used when a grading request carries
+no API key (demos, UI development, tests). Every criterion gets 80% of its
+points; results graded with it are marked as mock grades.
 """
 from __future__ import annotations
 
@@ -13,23 +13,17 @@ _CRITERION_LINE = re.compile(r"^- \[([^\]]+)\] .*?\(0-([\d.]+) points\)", re.MUL
 
 
 class FakeLLMProvider:
-    model_id: str = "fake-model-v1"
+    model_id: str = "mock"
 
     _ANOMALY = {
         "flags": [],
         "overall_risk": "low",
-        "recommendation": "[fake] No concerns detected.",
+        "recommendation": "[mock] No concerns detected.",
     }
 
-    async def complete(self, prompt: str, system: str = "") -> str:
-        return json.dumps(self._dispatch(prompt))
-
-    async def complete_with_raw(self, prompt: str, system: str = "") -> tuple[dict, str, int]:
+    async def complete_with_raw(self, prompt: str) -> tuple[dict, str, int]:
         result = self._dispatch(prompt)
         return result, json.dumps(result), 1
-
-    async def complete_json(self, prompt: str, system: str = "") -> dict:
-        return self._dispatch(prompt)
 
     def _dispatch(self, prompt: str) -> dict:
         if prompt.startswith("You are grading a student submission"):
@@ -43,8 +37,8 @@ class FakeLLMProvider:
         criteria = [
             {
                 "id": criterion_id,
-                "evidence": "[fake] submission",
-                "justification": "[fake] Mostly meets the criterion.",
+                "evidence": "[mock] submission",
+                "justification": "[mock] Mostly meets the criterion.",
                 "score": round(float(max_points) * 0.8, 2),
             }
             for criterion_id, max_points in _CRITERION_LINE.findall(prompt)
@@ -52,7 +46,7 @@ class FakeLLMProvider:
         return {
             "criteria": criteria,
             "feedback": {
-                "summary": "[fake] Good work overall.",
+                "summary": "[mock] Good work overall.",
                 "strengths": ["Correct output", "Clean code"],
                 "improvements": ["Add comments"],
                 "next_steps": ["Try edge cases"],

@@ -7,8 +7,9 @@ Grades the four demo submissions for hw1_sorting and prints the results:
   3. Carol  — suspiciously advanced code (integrity check)
   4. Diana  — partial solution (bubble sort with a bare except)
 
-Run (with the claude CLI logged in, or DEFAULT_LLM_PROVIDER=anthropic / fake):
+Run with the mock model (no key), or grade for real with a key for hw1's model:
     python demo/run_demo.py
+    LLM_API_KEY=sk-... python demo/run_demo.py
 """
 import asyncio
 import os
@@ -48,7 +49,7 @@ async def grade(student_id: str, filenames: list[str]) -> None:
         files=[read_file(name) for name in filenames],
     )
     start = time.time()
-    result = await assess_submission(request)
+    result = await assess_submission(request, os.environ.get("LLM_API_KEY"))
     elapsed = time.time() - start
 
     score = "—" if result.score is None else f"{result.score:g}"

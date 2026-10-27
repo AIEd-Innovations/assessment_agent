@@ -15,6 +15,5 @@ USER app
 
 EXPOSE 8000
 
-# The default LLM provider (claude_cli) needs the claude CLI, which is not in this image.
-# Set DEFAULT_LLM_PROVIDER=anthropic (with ANTHROPIC_API_KEY) or =fake for demos.
+# Teachers send their API key with each grading request; without one the offline mock model grades.
 CMD ["uvicorn", "run:app", "--host", "0.0.0.0", "--port", "8000"]
