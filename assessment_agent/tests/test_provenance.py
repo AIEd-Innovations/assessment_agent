@@ -57,11 +57,6 @@ class TestAssessmentProvenance:
         assert prov.submission_hash == hash_files([submissions["perfect_code"]])
         assert prov.spec_hash == load_spec_with_hash("hw1_sorting")[1]
 
-    async def test_one_grading_call_and_one_integrity_call(self, fake_provider, submissions):
-        result = await _run(fake_provider, submissions["perfect_code"])
-        stages = sorted(c.stage for c in result.provenance.llm_calls)
-        assert stages == ["anomaly_detection", "grading"]
-
     async def test_same_inputs_produce_same_hashes(self, fake_provider, submissions):
         first = (await _run(fake_provider, submissions["perfect_code"])).provenance
         second = (await _run(fake_provider, submissions["perfect_code"])).provenance

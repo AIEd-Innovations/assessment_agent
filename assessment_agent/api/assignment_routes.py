@@ -17,7 +17,6 @@ class SpecInput(BaseModel):
     description: str = ""
     criteria: list[Criterion]
     guidance: str = ""
-    skill_level: str = ""
     model: str = config.DEFAULT_MODEL
 
 

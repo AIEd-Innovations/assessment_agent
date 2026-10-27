@@ -52,10 +52,8 @@ def lab_to_specs(lab: dict, assignment_id: str) -> list[GradingSpec]:
         raise CurriculumError(409, f"Lab {lab.get('lab_id')!r} is not approved yet")
 
     title = lab.get("title", "")
-    objectives = "; ".join(lab.get("learning_objectives") or [])
     common = {
         "guidance": lab.get("agent_instructions") or "",
-        "skill_level": f"{lab.get('difficulty', '')} lab. Learning objectives: {objectives}".strip(),
         "source": f"curriculum-designer {lab.get('lab_id')} v{lab.get('version', 1)}",
     }
 

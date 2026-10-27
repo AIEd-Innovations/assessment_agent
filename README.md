@@ -1,8 +1,8 @@
 # Assessment Agent
 
 FastAPI service in the AIEIC Lab Multi-Agent System. Grades a submission (any number of UTF-8 text files, in any
-language) against the assignment's rubric with one LLM call, and runs an integrity check alongside it. Nothing is
-executed. Grading is **synchronous**: several seconds to tens of seconds per student with a real provider.
+language) against the assignment's rubric with one LLM call. Nothing is executed. Grading is **synchronous**: several
+seconds to tens of seconds per student with a real provider.
 
 ## How grading works
 1. Load the assignment's spec: rubric criteria with `max_points`, guidance, an optional reference solution and the
@@ -10,9 +10,8 @@ executed. Grading is **synchronous**: several seconds to tens of seconds per stu
 2. One call to that model scores every criterion and writes the feedback, using the teacher's API key from the
    request. An unusable response is retried once.
 3. `score` is the sum of the criterion scores, out of `max_score`.
-4. `status` is `needs_review` (with `review_reasons`) if grading failed, the grader was unsure, the submission was
-   truncated, or the integrity check rated the risk medium or high or found an attempt to influence the grade;
-   otherwise `ai_graded`. An instructor's `final_score` replaces
+4. `status` is `needs_review` (with `review_reasons`) if grading failed, the grader was unsure or saw an attempt to
+   influence the grade, or the submission was truncated; otherwise `ai_graded`. An instructor's `final_score` replaces
    `score` and sets the status to `instructor_graded`.
 
 ## Run locally
@@ -44,7 +43,7 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | Variable | Default | Purpose |
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
-| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, anomaly reports and instructor-provided specs are written |
+| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results and instructor-provided specs are written |
 | `CURRICULUM_URL` | none | curriculum designer base URL, for importing approved labs |
 
 **Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
@@ -53,7 +52,7 @@ agent refuses to start if it cannot write there (in Docker the process runs as u
 
 ## Grading specs
 A spec holds `title`, `description`, `criteria` (`id`, `name`, `description`, `max_points`, and an optional
-`expected_answer` for quiz-style questions), `guidance`, `skill_level` (used by the integrity check) and `model` (one of
+`expected_answer` for quiz-style questions), `guidance` and `model` (one of
 the models above; `claude-sonnet-5-5` if omitted). It can also have a reference solution or answer key, and course
 materials such as lecture notes. Solutions, materials and expected answers are given to the grader but never returned by
 the API.
@@ -100,7 +99,6 @@ The image runs as an unprivileged user and writes results to `/appdata` (mount a
 | `POST /assignments/import/{lab_id}?assignment_id=` | import an approved curriculum designer lab (and its quiz) |
 | `GET /results?student_id&assignment_id&status`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results |
 | `POST /results/{submission_id}/review` | JSON: `final_score` (0 to `max_score`) and `notes`; replaces the AI score |
-| `GET /anomalies?reviewed` | anomaly reports |
 
 Key result fields: `criteria` (per-criterion score, justification and evidence), `score`, `max_score`, `status`,
 `review_reasons`, `final_score`, `feedback`, `model` and `mock`. The full shape is `AssessmentResult` in `models.py`.

@@ -13,7 +13,6 @@ from assessment_agent.models import (
 )
 from assessment_agent.agents.orchestrator import assess_submission
 from assessment_agent.llm import SUPPORTED_MODELS, LLMAuthError
-from assessment_agent.interfaces.integrity_guardian import get_anomaly_reports
 from assessment_agent.spec import SpecNotFoundError
 from assessment_agent import config, persistence
 
@@ -151,8 +150,3 @@ async def get_provenance(submission_id: str):
             return provenance
     raise HTTPException(404, f"Submission '{submission_id}' not found")
 
-
-@router.get("/anomalies")
-async def list_anomalies(reviewed: bool = None):
-    """Get flagged anomaly reports."""
-    return get_anomaly_reports(reviewed=reviewed)

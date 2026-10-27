@@ -25,16 +25,13 @@ def data_dir(tmp_path: Path):
     os.environ["DATA_DIR"] = str(tmp_path)
 
     import assessment_agent.config as cfg
-    import assessment_agent.interfaces.integrity_guardian as ig
-    saved = (cfg.DATA_DIR, cfg.RESULTS_FILE, cfg.ANOMALY_REPORTS_FILE, ig.ANOMALY_REPORTS_FILE)
-    cfg.DATA_DIR             = str(tmp_path)
-    cfg.RESULTS_FILE         = str(tmp_path / "assessment_results.json")
-    cfg.ANOMALY_REPORTS_FILE = str(tmp_path / "anomaly_reports.json")
-    ig.ANOMALY_REPORTS_FILE  = cfg.ANOMALY_REPORTS_FILE
+    saved = (cfg.DATA_DIR, cfg.RESULTS_FILE)
+    cfg.DATA_DIR     = str(tmp_path)
+    cfg.RESULTS_FILE = str(tmp_path / "assessment_results.json")
 
     yield tmp_path
 
-    cfg.DATA_DIR, cfg.RESULTS_FILE, cfg.ANOMALY_REPORTS_FILE, ig.ANOMALY_REPORTS_FILE = saved
+    cfg.DATA_DIR, cfg.RESULTS_FILE = saved
     if old is None:
         os.environ.pop("DATA_DIR", None)
     else:

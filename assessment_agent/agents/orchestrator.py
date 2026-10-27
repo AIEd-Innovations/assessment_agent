@@ -1,4 +1,3 @@
-import asyncio
 import hashlib
 import logging
 
@@ -9,8 +8,6 @@ from assessment_agent.models import (
     SubmissionFile,
 )
 from assessment_agent.agents.grader import grade_submission, total_score
-from assessment_agent.agents.anomaly_detector import detect_anomalies
-from assessment_agent.interfaces.integrity_guardian import report_anomaly
 from assessment_agent.llm import get_llm_provider
 from assessment_agent.spec import load_spec_with_hash
 
@@ -36,9 +33,8 @@ async def assess_submission(request: AssessmentRequest, api_key: str | None = No
     """
     Grade a submission against its assignment's spec.
 
-    One LLM call scores every rubric criterion and writes the feedback; the
-    integrity check runs alongside it. The score is the sum of the criterion
-    scores. Anything the grader is unsure of, or a medium/high integrity risk,
+    One LLM call scores every rubric criterion and writes the feedback. The
+    score is the sum of the criterion scores. Anything the grader is unsure of
     marks the result for instructor review.
 
     The assignment's spec names the model; api_key is the teacher's key for that
@@ -59,22 +55,10 @@ async def assess_submission(request: AssessmentRequest, api_key: str | None = No
         submission_hash=hash_files(request.files),
     )
 
-    outcomes = await asyncio.gather(
-        grade_submission(spec, request.files, provider, collector),
-        detect_anomalies(request.files, spec, provider, collector),
-        return_exceptions=True,
-    )
-    for outcome in outcomes:
-        if isinstance(outcome, BaseException):
-            raise outcome
-    grading, anomaly = outcomes
+    grading = await grade_submission(spec, request.files, provider, collector)
 
     reasons = [mock_reason(spec.model)] if mock else []
     reasons += grading.review_reasons
-    if anomaly.overall_risk in ("medium", "high"):
-        reasons.append(f"The integrity check rated the risk as {anomaly.overall_risk}.")
-    if any(f.flag_type == "prompt_injection" for f in anomaly.flags):
-        reasons.append("The integrity check found text aimed at influencing the grade.")
 
     result = AssessmentResult(
         student_id=request.student_id,
@@ -86,18 +70,9 @@ async def assess_submission(request: AssessmentRequest, api_key: str | None = No
         score=total_score(grading.criteria) if grading.succeeded else None,
         max_score=spec.max_score,
         feedback=grading.feedback,
-        anomaly_report=anomaly,
         status="needs_review" if reasons else "ai_graded",
         review_reasons=reasons,
     )
-
-    if anomaly.flags:
-        report_anomaly(
-            submission_id=result.submission_id,
-            student_id=request.student_id,
-            assignment_id=request.assignment_id,
-            anomaly_report=anomaly,
-        )
 
     result.provenance = collector.build()
     return result

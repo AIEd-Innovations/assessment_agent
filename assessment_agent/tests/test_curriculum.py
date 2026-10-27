@@ -38,7 +38,6 @@ def test_rubric_becomes_a_spec_scaled_to_100_points():
     assert [c.max_points for c in spec.criteria] == [50, 25, 25]
     assert spec.description.startswith("# Lab 4")
     assert spec.guidance == "Be encouraging."
-    assert "pointer manipulation" in spec.skill_level
     assert spec.source == "curriculum-designer lab4 v3"
 
 

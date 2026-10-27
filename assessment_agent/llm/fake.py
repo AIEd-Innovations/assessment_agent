@@ -15,12 +15,6 @@ _CRITERION_LINE = re.compile(r"^- \[([^\]]+)\] .*?\(0-([\d.]+) points\)", re.MUL
 class FakeLLMProvider:
     model_id: str = "mock"
 
-    _ANOMALY = {
-        "flags": [],
-        "overall_risk": "low",
-        "recommendation": "[mock] No concerns detected.",
-    }
-
     async def complete_with_raw(self, prompt: str) -> tuple[dict, str, int]:
         result = self._dispatch(prompt)
         return result, json.dumps(result), 1
@@ -28,8 +22,6 @@ class FakeLLMProvider:
     def _dispatch(self, prompt: str) -> dict:
         if prompt.startswith("You are grading a student submission"):
             return self._grading(prompt)
-        if "academic integrity analyst" in prompt:
-            return self._ANOMALY
         return {}
 
     @staticmethod

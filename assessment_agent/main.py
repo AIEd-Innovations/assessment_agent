@@ -15,8 +15,8 @@ def create_assessment_app() -> FastAPI:
         description=(
             "Automated assessment agent for CSC 580 lab submissions. "
             "Part of the AIEIC Lab Agentic Design Framework. "
-            "Grades submissions against instructor-provided rubrics, runs an "
-            "integrity check and writes feedback."
+            "Grades submissions against instructor-provided rubrics and "
+            "writes feedback."
         ),
         version="0.1.0",
     )

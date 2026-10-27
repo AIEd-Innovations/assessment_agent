@@ -50,7 +50,6 @@ class GradingSpec(BaseModel):
     description: str = ""
     criteria: list[Criterion]
     guidance: str = ""
-    skill_level: str = ""  # what students are expected to know by this assignment
     model: str = config.DEFAULT_MODEL  # every submission for the assignment is graded by this model
     source: str = ""  # "built-in", "upload" or the curriculum designer lab it was imported from
     # Excluded from model_dump(), so the solution never reaches an API response.
