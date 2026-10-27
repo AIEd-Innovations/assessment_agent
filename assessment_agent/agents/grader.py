@@ -55,9 +55,12 @@ def total_score(criteria: list[CriterionScore]) -> float:
 
 
 def _criteria_block(spec: GradingSpec) -> str:
-    return "\n".join(
-        f"- [{c.id}] {c.name} (0-{c.max_points:g} points): {c.description}" for c in spec.criteria
-    )
+    lines = []
+    for c in spec.criteria:
+        lines.append(f"- [{c.id}] {c.name} (0-{c.max_points:g} points): {c.description}")
+        if c.expected_answer:
+            lines.append(f"  Expected answer: {c.expected_answer}")
+    return "\n".join(lines)
 
 
 def build_grading_prompt(
@@ -66,6 +69,7 @@ def build_grading_prompt(
     """Returns (prompt, truncated)."""
     submission_block, truncated = format_files(files, config.MAX_SUBMISSION_CHARS)
     solution_block = format_files(spec.reference_solution)[0] if spec.reference_solution else "None provided."
+    materials_block = format_files(spec.materials, config.MAX_MATERIAL_CHARS)[0] if spec.materials else "None provided."
     prompt = load_prompt(
         "grading",
         assignment_id=spec.assignment_id,
@@ -75,6 +79,7 @@ def build_grading_prompt(
         guidance=spec.guidance or "None.",
         criteria_block=_criteria_block(spec),
         solution_block=solution_block,
+        materials_block=materials_block,
         boundary=boundary,
         submission_block=submission_block,
     )

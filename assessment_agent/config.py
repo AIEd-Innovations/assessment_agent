@@ -9,6 +9,11 @@ DEFAULT_MODEL = "claude-sonnet-5-5"
 # Submission limits
 MAX_UPLOAD_CHARS = 1_000_000  # larger submissions are rejected
 MAX_SUBMISSION_CHARS = 60000  # total text sent to the grader; anything past this is cut and flagged for review
+MAX_MATERIAL_CHARS = 40000  # course material sent to the grader; instructors are warned at upload when it is longer
+MAX_MATERIAL_FILE_MB = 20  # per uploaded solution or material file
+
+# Curriculum designer base URL for importing approved labs, e.g. http://localhost:8003
+CURRICULUM_URL = os.environ.get("CURRICULUM_URL", "")
 
 # Paths
 _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
