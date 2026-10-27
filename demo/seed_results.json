@@ -1,126 +1,56 @@
 [
   {
-    "submission_id": "ac695158",
+    "submission_id": "1f8d87e9",
     "student_id": "alex_morgan",
     "assignment_id": "hw1_sorting",
-    "submission_type": "full",
-    "code_grade": {
-      "test_results": [
-        {
-          "name": "basic_sort",
-          "passed": true,
-          "expected_output": "1 2 3",
-          "actual_output": "1 2 3",
-          "error": "",
-          "execution_time_ms": 14.0,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "already_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 13.02,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "reverse_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 12.65,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "duplicates",
-          "passed": true,
-          "expected_output": "1 1 2 3 3",
-          "actual_output": "1 1 2 3 3",
-          "error": "",
-          "execution_time_ms": 12.77,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "single_element",
-          "passed": true,
-          "expected_output": "42",
-          "actual_output": "42",
-          "error": "",
-          "execution_time_ms": 12.56,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "negative_numbers",
-          "passed": true,
-          "expected_output": "-3 -2 0 1 5",
-          "actual_output": "-3 -2 0 1 5",
-          "error": "",
-          "execution_time_ms": 12.45,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "large_input",
-          "passed": true,
-          "expected_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "actual_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "error": "",
-          "execution_time_ms": 13.06,
-          "points_earned": 20.0,
-          "points_possible": 20.0
-        }
-      ],
-      "tests_passed": 7,
-      "tests_total": 7,
-      "raw_score": 100.0,
-      "weighted_score": 60.0,
-      "compilation_error": "",
-      "runtime_errors": [],
-      "llm_reasoning": ""
-    },
-    "report_evaluation": {
-      "criteria": [
-        {
-          "name": "Logical Clarity",
-          "score": 8.0,
-          "max_score": 10.0,
-          "justification": "[fake] Well structured argument."
-        },
-        {
-          "name": "Completeness",
-          "score": 9.0,
-          "max_score": 10.0,
-          "justification": "[fake] All aspects addressed."
-        },
-        {
-          "name": "Technical Accuracy",
-          "score": 7.0,
-          "max_score": 10.0,
-          "justification": "[fake] Minor inaccuracies."
-        },
-        {
-          "name": "Writing Quality",
-          "score": 9.0,
-          "max_score": 10.0,
-          "justification": "[fake] Clear prose."
-        }
-      ],
-      "raw_score": 82.5,
-      "weighted_score": 24.75,
-      "llm_reasoning": "[fake] Solid report with minor technical gaps."
-    },
-    "anomaly_report": {
-      "flags": [],
-      "overall_risk": "low",
-      "recommendation": "[fake] No concerns detected."
-    },
+    "files": [
+      "student_a_perfect.py",
+      "student_a_report.md"
+    ],
+    "criteria": [
+      {
+        "id": "correctness",
+        "name": "Correctness",
+        "score": 40.0,
+        "max_points": 40.0,
+        "justification": "Fully meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "input_output",
+        "name": "Input and Output",
+        "score": 15.0,
+        "max_points": 15.0,
+        "justification": "Fully meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "code_quality",
+        "name": "Code Quality",
+        "score": 15.0,
+        "max_points": 15.0,
+        "justification": "Fully meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_approach",
+        "name": "Report: Approach",
+        "score": 15.0,
+        "max_points": 15.0,
+        "justification": "Fully meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_analysis",
+        "name": "Report: Analysis",
+        "score": 15.0,
+        "max_points": 15.0,
+        "justification": "Fully meets the criterion.",
+        "evidence": "[fake] submission"
+      }
+    ],
+    "score": 100.0,
+    "max_score": 100.0,
     "feedback": {
       "summary": "[fake] Good work overall.",
       "strengths": [
@@ -132,179 +62,191 @@
       ],
       "next_steps": [
         "Try edge cases"
-      ],
-      "detailed_feedback": ""
+      ]
     },
-    "manual_review": {
-      "submission_id": "ac695158",
-      "student_id": "alex_morgan",
-      "assignment_id": "hw1_sorting",
-      "automated_score": 84.75,
-      "anomaly_flags": [],
-      "priority": "normal",
-      "status": "pending",
-      "instructor_score": null,
-      "instructor_notes": "[fake] No issues.",
-      "created_at": "2026-10-05T22:50:36.798792"
+    "anomaly_report": {
+      "flags": [],
+      "overall_risk": "low",
+      "recommendation": "[fake] No concerns detected."
     },
-    "automated_score": 84.75,
+    "status": "ai_graded",
+    "review_reasons": [],
     "final_score": null,
-    "status": "completed",
-    "created_at": "2026-10-05T22:50:36.702924",
-    "agent_reasoning": "[fake] Score looks appropriate.",
+    "instructor_notes": "",
+    "reviewed_at": null,
+    "created_at": "2026-10-12T17:43:34.031679",
     "provenance": {
-      "code_hash": "0374cbbdf91c9343e920a987f73e5bb68495a109fc4f6493b389d16fbd5281aa",
-      "report_hash": "263cbfac1078038346c6f8caf7bd0736ef8fef9d14d9ebc3360f03455c35a79a",
-      "rubric_hash": "2515a7cbd063bbe7e6d53747229d251a8b297ca85cd4e6f9349fdc0c69ae95e7",
+      "submission_hash": "898276eec23f32e1a00085f53b56242cc202d549ded4399a6ef1a0a0ffbdcfec",
+      "spec_hash": "8194410604383d66ac12352af8dd70b7d7d227eed3f1af991ff8f2e291d9958c",
       "model_id": "fake-model-v1",
-      "prompt_versions": {
-        "report_evaluation": "a3fa2873059877a578fdce754c4dce0b633afd9eea57bb3fe9e6cc6bf0d8afce",
-        "anomaly_detection": "97eb70ac51cb1c4cc5e711138ad635c609370f5c701dbe448759b6fbba5ae62a",
-        "orchestrator_reasoning": "1723a0101660dbf90232f99ba79ed50d2e9684da67805acfef2cf3e4eb775a27",
-        "feedback_generation": "22a1f13caec26bbaa6eef3e23ffb2ab94f41cbac296a37b60adfed299fe9c843"
-      },
       "llm_calls": [
         {
-          "stage": "report_evaluation",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "a3fa2873059877a578fdce754c4dce0b633afd9eea57bb3fe9e6cc6bf0d8afce",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"criteria\": [{\"name\": \"Logical Clarity\", \"score\": 8, \"justification\": \"[fake] Well structured argument.\"}, {\"name\": \"Completeness\", \"score\": 9, \"justification\": \"[fake] All aspects addressed.\"}, {\"name\": \"Technical Accuracy\", \"score\": 7, \"justification\": \"[fake] Minor inaccuracies.\"}, {\"name\": \"Writing Quality\", \"score\": 9, \"justification\": \"[fake] Clear prose.\"}], \"reasoning\": \"[fake] Solid report with minor technical gaps.\"}",
+          "stage": "grading",
           "latency_ms": 1,
           "success": true,
           "error": "",
-          "timestamp": "2026-10-05T22:50:36.797525"
+          "timestamp": "2026-10-12T17:43:34.031679"
         },
         {
           "stage": "anomaly_detection",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "97eb70ac51cb1c4cc5e711138ad635c609370f5c701dbe448759b6fbba5ae62a",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"flags\": [], \"overall_risk\": \"low\", \"recommendation\": \"[fake] No concerns detected.\"}",
           "latency_ms": 1,
           "success": true,
           "error": "",
-          "timestamp": "2026-10-05T22:50:36.797896"
-        },
-        {
-          "stage": "orchestrator_reasoning",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "1723a0101660dbf90232f99ba79ed50d2e9684da67805acfef2cf3e4eb775a27",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"reasoning\": \"[fake] Score looks appropriate.\", \"score_adjustment\": 0, \"review_priority\": \"normal\", \"instructor_notes\": \"[fake] No issues.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:36.798078"
-        },
-        {
-          "stage": "feedback_generation",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "22a1f13caec26bbaa6eef3e23ffb2ab94f41cbac296a37b60adfed299fe9c843",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"summary\": \"[fake] Good work overall.\", \"strengths\": [\"Correct output\", \"Clean code\"], \"improvements\": [\"Add comments\"], \"next_steps\": [\"Try edge cases\"]}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:36.798772"
+          "timestamp": "2026-10-12T17:43:34.031679"
         }
       ],
-      "total_latency_ms": 4,
-      "created_at": "2026-10-05T22:50:36.799340"
+      "created_at": "2026-10-12T17:43:34.031679"
     }
   },
   {
-    "submission_id": "d4ff04fd",
+    "submission_id": "dcd6a083",
     "student_id": "bella_kim",
     "assignment_id": "hw1_sorting",
-    "submission_type": "code_only",
-    "code_grade": {
-      "test_results": [
-        {
-          "name": "basic_sort",
-          "passed": true,
-          "expected_output": "1 2 3",
-          "actual_output": "1 2 3",
-          "error": "",
-          "execution_time_ms": 13.61,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "already_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 14.13,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "reverse_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 14.88,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "duplicates",
-          "passed": true,
-          "expected_output": "1 1 2 3 3",
-          "actual_output": "1 1 2 3 3",
-          "error": "",
-          "execution_time_ms": 13.53,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "single_element",
-          "passed": true,
-          "expected_output": "42",
-          "actual_output": "42",
-          "error": "",
-          "execution_time_ms": 13.35,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "negative_numbers",
-          "passed": false,
-          "expected_output": "-3 -2 0 1 5",
-          "actual_output": "-2 -3 0 1 5",
-          "error": "",
-          "execution_time_ms": 13.64,
-          "points_earned": 0.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "large_input",
-          "passed": false,
-          "expected_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "actual_output": "100 81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99",
-          "error": "",
-          "execution_time_ms": 13.3,
-          "points_earned": 0.0,
-          "points_possible": 20.0
-        }
+    "files": [
+      "student_b_buggy.py"
+    ],
+    "criteria": [
+      {
+        "id": "correctness",
+        "name": "Correctness",
+        "score": 12,
+        "max_points": 40.0,
+        "justification": "Sorts the numbers as strings, so multi-digit and negative inputs come out in the wrong order.",
+        "evidence": "nums.sort() on the raw string tokens"
+      },
+      {
+        "id": "input_output",
+        "name": "Input and Output",
+        "score": 15,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "code_quality",
+        "name": "Code Quality",
+        "score": 10,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_approach",
+        "name": "Report: Approach",
+        "score": 0,
+        "max_points": 15.0,
+        "justification": "No report submitted.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_analysis",
+        "name": "Report: Analysis",
+        "score": 0,
+        "max_points": 15.0,
+        "justification": "No report submitted.",
+        "evidence": "[fake] submission"
+      }
+    ],
+    "score": 37,
+    "max_score": 100.0,
+    "feedback": {
+      "summary": "The output format is right, but the values are sorted as text rather than as integers.",
+      "strengths": [
+        "Correct output",
+        "Clean code"
       ],
-      "tests_passed": 5,
-      "tests_total": 7,
-      "raw_score": 65.0,
-      "weighted_score": 39.0,
-      "compilation_error": "",
-      "runtime_errors": [],
-      "llm_reasoning": ""
+      "improvements": [
+        "Add comments"
+      ],
+      "next_steps": [
+        "Try edge cases"
+      ]
     },
-    "report_evaluation": null,
     "anomaly_report": {
       "flags": [],
       "overall_risk": "low",
       "recommendation": "[fake] No concerns detected."
     },
+    "status": "ai_graded",
+    "review_reasons": [],
+    "final_score": null,
+    "instructor_notes": "",
+    "reviewed_at": null,
+    "created_at": "2026-10-12T17:43:34.033681",
+    "provenance": {
+      "submission_hash": "0b6b5af38167798b37a8a9d2430792fedf3a7595f6969cf8a20fa5f58d8a1458",
+      "spec_hash": "8194410604383d66ac12352af8dd70b7d7d227eed3f1af991ff8f2e291d9958c",
+      "model_id": "fake-model-v1",
+      "llm_calls": [
+        {
+          "stage": "grading",
+          "latency_ms": 1,
+          "success": true,
+          "error": "",
+          "timestamp": "2026-10-12T17:43:34.033681"
+        },
+        {
+          "stage": "anomaly_detection",
+          "latency_ms": 1,
+          "success": true,
+          "error": "",
+          "timestamp": "2026-10-12T17:43:34.033681"
+        }
+      ],
+      "created_at": "2026-10-12T17:43:34.033681"
+    }
+  },
+  {
+    "submission_id": "358e6dbf",
+    "student_id": "carlos_rivera",
+    "assignment_id": "hw1_sorting",
+    "files": [
+      "student_c_suspicious.py"
+    ],
+    "criteria": [
+      {
+        "id": "correctness",
+        "name": "Correctness",
+        "score": 32.0,
+        "max_points": 40.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "input_output",
+        "name": "Input and Output",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "code_quality",
+        "name": "Code Quality",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_approach",
+        "name": "Report: Approach",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_analysis",
+        "name": "Report: Analysis",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      }
+    ],
+    "score": 80.0,
+    "max_score": 100.0,
     "feedback": {
       "summary": "[fake] Good work overall.",
       "strengths": [
@@ -316,174 +258,102 @@
       ],
       "next_steps": [
         "Try edge cases"
-      ],
-      "detailed_feedback": ""
+      ]
     },
-    "manual_review": {
-      "submission_id": "d4ff04fd",
-      "student_id": "bella_kim",
-      "assignment_id": "hw1_sorting",
-      "automated_score": 39.0,
-      "anomaly_flags": [],
-      "priority": "normal",
-      "status": "pending",
-      "instructor_score": null,
-      "instructor_notes": "[fake] No issues.",
-      "created_at": "2026-10-05T22:50:36.902331"
-    },
-    "automated_score": 39.0,
-    "final_score": null,
-    "status": "completed",
-    "created_at": "2026-10-05T22:50:36.801765",
-    "agent_reasoning": "[fake] Score looks appropriate.",
-    "provenance": {
-      "code_hash": "59397df1062fd667a53d8400a14566df464f1bb0fddc7f5a682e3ddfd4eb20e4",
-      "report_hash": null,
-      "rubric_hash": "2515a7cbd063bbe7e6d53747229d251a8b297ca85cd4e6f9349fdc0c69ae95e7",
-      "model_id": "fake-model-v1",
-      "prompt_versions": {
-        "anomaly_detection": "49c57c20075559aa3be6989ab2b9aca62651b7a391d1075dbdc914034b3e4e43",
-        "orchestrator_reasoning": "2c9ca9dd8f3bbf186d28a9b818f6721dc6efd8fafed9b80f485ffb077df8ddd5",
-        "feedback_generation": "0bfb35024e8fd365cbe41856cbe74216b523aaf6bc34dbea00b2daceb977c436"
-      },
-      "llm_calls": [
-        {
-          "stage": "anomaly_detection",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "49c57c20075559aa3be6989ab2b9aca62651b7a391d1075dbdc914034b3e4e43",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"flags\": [], \"overall_risk\": \"low\", \"recommendation\": \"[fake] No concerns detected.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:36.902114"
-        },
-        {
-          "stage": "orchestrator_reasoning",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "2c9ca9dd8f3bbf186d28a9b818f6721dc6efd8fafed9b80f485ffb077df8ddd5",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"reasoning\": \"[fake] Score looks appropriate.\", \"score_adjustment\": 0, \"review_priority\": \"normal\", \"instructor_notes\": \"[fake] No issues.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:36.902197"
-        },
-        {
-          "stage": "feedback_generation",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "0bfb35024e8fd365cbe41856cbe74216b523aaf6bc34dbea00b2daceb977c436",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"summary\": \"[fake] Good work overall.\", \"strengths\": [\"Correct output\", \"Clean code\"], \"improvements\": [\"Add comments\"], \"next_steps\": [\"Try edge cases\"]}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:36.902314"
-        }
-      ],
-      "total_latency_ms": 3,
-      "created_at": "2026-10-05T22:50:36.902846"
-    }
-  },
-  {
-    "submission_id": "57fa74be",
-    "student_id": "carlos_rivera",
-    "assignment_id": "hw1_sorting",
-    "submission_type": "code_only",
-    "code_grade": {
-      "test_results": [
-        {
-          "name": "basic_sort",
-          "passed": true,
-          "expected_output": "1 2 3",
-          "actual_output": "1 2 3",
-          "error": "",
-          "execution_time_ms": 17.09,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "already_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 17.61,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "reverse_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 17.14,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "duplicates",
-          "passed": true,
-          "expected_output": "1 1 2 3 3",
-          "actual_output": "1 1 2 3 3",
-          "error": "",
-          "execution_time_ms": 18.29,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "single_element",
-          "passed": true,
-          "expected_output": "42",
-          "actual_output": "42",
-          "error": "",
-          "execution_time_ms": 17.54,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "negative_numbers",
-          "passed": true,
-          "expected_output": "-3 -2 0 1 5",
-          "actual_output": "-3 -2 0 1 5",
-          "error": "",
-          "execution_time_ms": 18.11,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "large_input",
-          "passed": true,
-          "expected_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "actual_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "error": "",
-          "execution_time_ms": 17.91,
-          "points_earned": 20.0,
-          "points_possible": 20.0
-        }
-      ],
-      "tests_passed": 7,
-      "tests_total": 7,
-      "raw_score": 100.0,
-      "weighted_score": 60.0,
-      "compilation_error": "",
-      "runtime_errors": [],
-      "llm_reasoning": ""
-    },
-    "report_evaluation": null,
     "anomaly_report": {
       "flags": [
         {
-          "flag_type": "plagiarism",
-          "confidence": 0.87,
-          "evidence": "[seed] Code closely matches another submission.",
+          "flag_type": "complexity_mismatch",
+          "confidence": 0.85,
+          "evidence": "Uses advanced constructs far beyond an introductory assignment.",
           "severity": "high"
         }
       ],
       "overall_risk": "high",
-      "recommendation": "[seed] Review before releasing the grade."
+      "recommendation": "Ask the student to explain the solution."
     },
+    "status": "needs_review",
+    "review_reasons": [
+      "The integrity check rated the risk as high."
+    ],
+    "final_score": null,
+    "instructor_notes": "",
+    "reviewed_at": null,
+    "created_at": "2026-10-12T17:43:34.038681",
+    "provenance": {
+      "submission_hash": "45e4310b9f4ccdc05809251c957aa5bd6a2e2c0d523b9fc5d759d904fa3158c4",
+      "spec_hash": "8194410604383d66ac12352af8dd70b7d7d227eed3f1af991ff8f2e291d9958c",
+      "model_id": "fake-model-v1",
+      "llm_calls": [
+        {
+          "stage": "grading",
+          "latency_ms": 1,
+          "success": true,
+          "error": "",
+          "timestamp": "2026-10-12T17:43:34.035681"
+        },
+        {
+          "stage": "anomaly_detection",
+          "latency_ms": 1,
+          "success": true,
+          "error": "",
+          "timestamp": "2026-10-12T17:43:34.038681"
+        }
+      ],
+      "created_at": "2026-10-12T17:43:34.038681"
+    }
+  },
+  {
+    "submission_id": "66f639b2",
+    "student_id": "dana_wu",
+    "assignment_id": "hw1_sorting",
+    "files": [
+      "student_d_partial.py"
+    ],
+    "criteria": [
+      {
+        "id": "correctness",
+        "name": "Correctness",
+        "score": 32.0,
+        "max_points": 40.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "input_output",
+        "name": "Input and Output",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "code_quality",
+        "name": "Code Quality",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_approach",
+        "name": "Report: Approach",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      },
+      {
+        "id": "report_analysis",
+        "name": "Report: Analysis",
+        "score": 12.0,
+        "max_points": 15.0,
+        "justification": "[fake] Mostly meets the criterion.",
+        "evidence": "[fake] submission"
+      }
+    ],
+    "score": 80.0,
+    "max_score": 100.0,
     "feedback": {
       "summary": "[fake] Good work overall.",
       "strengths": [
@@ -495,245 +365,40 @@
       ],
       "next_steps": [
         "Try edge cases"
-      ],
-      "detailed_feedback": ""
+      ]
     },
-    "manual_review": {
-      "submission_id": "57fa74be",
-      "student_id": "carlos_rivera",
-      "assignment_id": "hw1_sorting",
-      "automated_score": 60.0,
-      "anomaly_flags": [],
-      "priority": "urgent",
-      "status": "pending",
-      "instructor_score": null,
-      "instructor_notes": "[fake] No issues.",
-      "created_at": "2026-10-05T22:50:37.035336"
-    },
-    "automated_score": 60.0,
-    "final_score": null,
-    "status": "completed",
-    "created_at": "2026-10-05T22:50:36.904998",
-    "agent_reasoning": "[fake] Score looks appropriate.",
-    "provenance": {
-      "code_hash": "4107abcd247e2065470c1775efc04566baba773c3a807b18aa4f48af5cbdc40a",
-      "report_hash": null,
-      "rubric_hash": "2515a7cbd063bbe7e6d53747229d251a8b297ca85cd4e6f9349fdc0c69ae95e7",
-      "model_id": "fake-model-v1",
-      "prompt_versions": {
-        "anomaly_detection": "b777543b2137c032fa836f39faa9172652fc9061eb3f1b89f40c999ee390f0fb",
-        "orchestrator_reasoning": "eae9ce68f88a74bf72dc1316a369337518e4888f42c4dab4d27485e55faa6bdf",
-        "feedback_generation": "4b46b67bafea43fae39ebe7287d3dd09983e786ea58b1406096d1612d909e387"
-      },
-      "llm_calls": [
-        {
-          "stage": "anomaly_detection",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "b777543b2137c032fa836f39faa9172652fc9061eb3f1b89f40c999ee390f0fb",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"flags\": [], \"overall_risk\": \"low\", \"recommendation\": \"[fake] No concerns detected.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:37.035217"
-        },
-        {
-          "stage": "orchestrator_reasoning",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "eae9ce68f88a74bf72dc1316a369337518e4888f42c4dab4d27485e55faa6bdf",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"reasoning\": \"[fake] Score looks appropriate.\", \"score_adjustment\": 0, \"review_priority\": \"normal\", \"instructor_notes\": \"[fake] No issues.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:37.035275"
-        },
-        {
-          "stage": "feedback_generation",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "4b46b67bafea43fae39ebe7287d3dd09983e786ea58b1406096d1612d909e387",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"summary\": \"[fake] Good work overall.\", \"strengths\": [\"Correct output\", \"Clean code\"], \"improvements\": [\"Add comments\"], \"next_steps\": [\"Try edge cases\"]}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:37.035327"
-        }
-      ],
-      "total_latency_ms": 3,
-      "created_at": "2026-10-05T22:50:37.035808"
-    }
-  },
-  {
-    "submission_id": "4f21e8a6",
-    "student_id": "dana_wu",
-    "assignment_id": "hw1_sorting",
-    "submission_type": "code_only",
-    "code_grade": {
-      "test_results": [
-        {
-          "name": "basic_sort",
-          "passed": true,
-          "expected_output": "1 2 3",
-          "actual_output": "1 2 3",
-          "error": "",
-          "execution_time_ms": 14.9,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "already_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 14.31,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "reverse_sorted",
-          "passed": true,
-          "expected_output": "1 2 3 4 5",
-          "actual_output": "1 2 3 4 5",
-          "error": "",
-          "execution_time_ms": 14.19,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "duplicates",
-          "passed": true,
-          "expected_output": "1 1 2 3 3",
-          "actual_output": "1 1 2 3 3",
-          "error": "",
-          "execution_time_ms": 13.86,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "single_element",
-          "passed": true,
-          "expected_output": "42",
-          "actual_output": "42",
-          "error": "",
-          "execution_time_ms": 13.77,
-          "points_earned": 10.0,
-          "points_possible": 10.0
-        },
-        {
-          "name": "negative_numbers",
-          "passed": true,
-          "expected_output": "-3 -2 0 1 5",
-          "actual_output": "-3 -2 0 1 5",
-          "error": "",
-          "execution_time_ms": 14.69,
-          "points_earned": 15.0,
-          "points_possible": 15.0
-        },
-        {
-          "name": "large_input",
-          "passed": true,
-          "expected_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "actual_output": "81 82 83 84 85 86 87 88 89 90 91 92 93 94 95 96 97 98 99 100",
-          "error": "",
-          "execution_time_ms": 14.9,
-          "points_earned": 20.0,
-          "points_possible": 20.0
-        }
-      ],
-      "tests_passed": 7,
-      "tests_total": 7,
-      "raw_score": 100.0,
-      "weighted_score": 60.0,
-      "compilation_error": "",
-      "runtime_errors": [],
-      "llm_reasoning": ""
-    },
-    "report_evaluation": null,
     "anomaly_report": {
       "flags": [],
       "overall_risk": "low",
       "recommendation": "[fake] No concerns detected."
     },
-    "feedback": {
-      "summary": "[fake] Good work overall.",
-      "strengths": [
-        "Correct output",
-        "Clean code"
-      ],
-      "improvements": [
-        "Add comments"
-      ],
-      "next_steps": [
-        "Try edge cases"
-      ],
-      "detailed_feedback": ""
-    },
-    "manual_review": {
-      "submission_id": "4f21e8a6",
-      "student_id": "dana_wu",
-      "assignment_id": "hw1_sorting",
-      "automated_score": 60.0,
-      "anomaly_flags": [],
-      "priority": "high",
-      "status": "pending",
-      "instructor_score": null,
-      "instructor_notes": "[fake] No issues.",
-      "created_at": "2026-10-05T22:50:37.144250"
-    },
-    "automated_score": 60.0,
-    "final_score": null,
-    "status": "completed",
-    "created_at": "2026-10-05T22:50:37.038171",
-    "agent_reasoning": "[fake] Score looks appropriate.",
+    "status": "instructor_graded",
+    "review_reasons": [],
+    "final_score": 72.0,
+    "instructor_notes": "Works, but the bare except hides errors.",
+    "reviewed_at": "2026-10-12T17:43:34.041003",
+    "created_at": "2026-10-12T17:43:34.041003",
     "provenance": {
-      "code_hash": "bb6ab989975f2e65545f16eea3cd9efa8f58a05b6b77e23c2e2df7fccb365318",
-      "report_hash": null,
-      "rubric_hash": "2515a7cbd063bbe7e6d53747229d251a8b297ca85cd4e6f9349fdc0c69ae95e7",
+      "submission_hash": "ced4b460d89fdb5e201b83e13e915f332f9fa5396dab746f1fd856fd83ae3184",
+      "spec_hash": "8194410604383d66ac12352af8dd70b7d7d227eed3f1af991ff8f2e291d9958c",
       "model_id": "fake-model-v1",
-      "prompt_versions": {
-        "anomaly_detection": "c2e361203486c8d50ea9f7c66301a6681f72477361a6b997c03e1acbd9684ac4",
-        "orchestrator_reasoning": "e0422327a15005737010bec23bbcc678ae4d07b8c6b063df686ae43f392d0042",
-        "feedback_generation": "7d98d36d9fb61148915bb7f6c24b9d3ef72cfd8119b5bec76b63b9eda126e46d"
-      },
       "llm_calls": [
         {
+          "stage": "grading",
+          "latency_ms": 1,
+          "success": true,
+          "error": "",
+          "timestamp": "2026-10-12T17:43:34.040004"
+        },
+        {
           "stage": "anomaly_detection",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "c2e361203486c8d50ea9f7c66301a6681f72477361a6b997c03e1acbd9684ac4",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"flags\": [], \"overall_risk\": \"low\", \"recommendation\": \"[fake] No concerns detected.\"}",
           "latency_ms": 1,
           "success": true,
           "error": "",
-          "timestamp": "2026-10-05T22:50:37.144111"
-        },
-        {
-          "stage": "orchestrator_reasoning",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "e0422327a15005737010bec23bbcc678ae4d07b8c6b063df686ae43f392d0042",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"reasoning\": \"[fake] Score looks appropriate.\", \"score_adjustment\": 0, \"review_priority\": \"normal\", \"instructor_notes\": \"[fake] No issues.\"}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:37.144172"
-        },
-        {
-          "stage": "feedback_generation",
-          "model_id": "fake-model-v1",
-          "prompt_hash": "7d98d36d9fb61148915bb7f6c24b9d3ef72cfd8119b5bec76b63b9eda126e46d",
-          "prompt_text": "[omitted from seed]",
-          "raw_response": "{\"summary\": \"[fake] Good work overall.\", \"strengths\": [\"Correct output\", \"Clean code\"], \"improvements\": [\"Add comments\"], \"next_steps\": [\"Try edge cases\"]}",
-          "latency_ms": 1,
-          "success": true,
-          "error": "",
-          "timestamp": "2026-10-05T22:50:37.144239"
+          "timestamp": "2026-10-12T17:43:34.041003"
         }
       ],
-      "total_latency_ms": 3,
-      "created_at": "2026-10-05T22:50:37.144685"
+      "created_at": "2026-10-12T17:43:34.041003"
     }
   }
 ]
