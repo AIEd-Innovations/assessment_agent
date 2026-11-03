@@ -44,6 +44,31 @@ def test_invalid_rubrics_are_rejected():
     assert create("../etc", RUBRIC).status_code == 404
 
 
+def test_assessment_agent_config_defaults_and_persists_per_assignment():
+    create()
+    default = client.get("/assignments/lab9/agent-config")
+    assert default.status_code == 200
+    assert default.json()["tone"] == "Analytical"
+    assert default.json()["instructions"] == ""
+
+    body = {
+        "tone": "Encouraging",
+        "strictness": "Balanced",
+        "support_style": "Detailed explanations",
+        "feedback_focus": "Build understanding",
+        "guardrail": "Escalate uncertainty to the instructor",
+        "instructions": "Explain why each rubric criterion earned its score.",
+    }
+    saved = client.put("/assignments/lab9/agent-config", json=body)
+    assert saved.status_code == 200
+    assert saved.json() == body
+    assert client.get("/assignments/lab9/agent-config").json() == body
+
+
+def test_assessment_agent_config_requires_an_existing_assignment():
+    assert client.get("/assignments/nope/agent-config").status_code == 404
+
+
 def test_solution_is_stored_but_never_returned(make_pdf):
     assert client.put("/assignments/lab9/solution", files=[("files", ("s.py", b"x"))]).status_code == 404
     create()
