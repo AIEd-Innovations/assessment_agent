@@ -143,6 +143,16 @@ def test_prompt_contains_task_rubric_and_solution(spec, files):
     assert "${" not in prompt
 
 
+def test_prompt_includes_the_instructor_selected_agent_behavior(spec, files, data_dir):
+    from assessment_agent.agent_config import AgentConfig, save_agent_config
+
+    save_agent_config(spec.assignment_id, AgentConfig(tone="Encouraging", feedback_focus="Build confidence"))
+    prompt, _ = build_grading_prompt(spec, files, new_boundary())
+    assert "INSTRUCTOR-SELECTED AGENT BEHAVIOR" in prompt
+    assert "encouraging tone" in prompt
+    assert "build confidence" in prompt
+
+
 def test_prompt_contains_materials_and_expected_answers(spec, files, monkeypatch):
     monkeypatch.setattr(grader.config, "MAX_MATERIAL_CHARS", 200)
     quiz = spec.model_copy(update={

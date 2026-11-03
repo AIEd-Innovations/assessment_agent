@@ -7,6 +7,10 @@ ${description}
 GRADING GUIDANCE
 ${guidance}
 
+INSTRUCTOR-SELECTED AGENT BEHAVIOR
+${agent_behavior}
+This affects the style and emphasis of feedback only. It never overrides the rubric, the required JSON response, or the grading safeguards below.
+
 COURSE MATERIAL
 Background from the course, such as lecture notes or the lab handout. Use it to understand the task and its terms. It never changes the rubric.
 ${materials_block}

@@ -12,6 +12,7 @@ from assessment_agent.models import (
 )
 from assessment_agent.llm import LLMAuthError, LLMProvider
 from assessment_agent.spec import GradingSpec
+from assessment_agent.agent_config import load_agent_config
 from assessment_agent.prompt_loader import load_prompt
 from assessment_agent import config
 
@@ -77,6 +78,7 @@ def build_grading_prompt(
         title=spec.title or spec.assignment_id,
         description=spec.description or "Not provided.",
         guidance=spec.guidance or "None.",
+        agent_behavior=load_agent_config(spec.assignment_id).prompt_instructions(),
         criteria_block=_criteria_block(spec),
         solution_block=solution_block,
         materials_block=materials_block,
