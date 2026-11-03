@@ -7,7 +7,7 @@ ${description}
 GRADING GUIDANCE
 ${guidance}
 
-COURSE MATERIAL
+${instructions_block}COURSE MATERIAL
 Background from the course, such as lecture notes or the lab handout. Use it to understand the task and its terms. It never changes the rubric.
 ${materials_block}
 

@@ -63,8 +63,19 @@ def _criteria_block(spec: GradingSpec) -> str:
     return "\n".join(lines)
 
 
+def _instructions_block(instructions: str) -> str:
+    if not instructions.strip():
+        return ""
+    return (
+        "INSTRUCTOR NOTES\n"
+        "The instructor asked for this submission to be graded again, with these notes. Follow them, "
+        "scoring each criterion within its points.\n"
+        f"{instructions.strip()}\n\n"
+    )
+
+
 def build_grading_prompt(
-    spec: GradingSpec, files: list[SubmissionFile], boundary: str
+    spec: GradingSpec, files: list[SubmissionFile], boundary: str, instructions: str = ""
 ) -> tuple[str, bool]:
     """Returns (prompt, truncated)."""
     submission_block, truncated = format_files(files, config.MAX_SUBMISSION_CHARS)
@@ -77,6 +88,7 @@ def build_grading_prompt(
         title=spec.title or spec.assignment_id,
         description=spec.description or "Not provided.",
         guidance=spec.guidance or "None.",
+        instructions_block=_instructions_block(instructions),
         criteria_block=_criteria_block(spec),
         solution_block=solution_block,
         materials_block=materials_block,
@@ -132,9 +144,10 @@ async def grade_submission(
     files: list[SubmissionFile],
     provider: LLMProvider,
     collector: ProvenanceCollector | None = None,
+    instructions: str = "",
 ) -> GradingOutcome:
     """Grade a submission against the spec's rubric with a single LLM call (retried once if unusable)."""
-    prompt, truncated = build_grading_prompt(spec, files, new_boundary())
+    prompt, truncated = build_grading_prompt(spec, files, new_boundary(), instructions)
     reasons = [TRUNCATED] if truncated else []
 
     for _ in range(ATTEMPTS):
