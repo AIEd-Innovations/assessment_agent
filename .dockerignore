@@ -5,5 +5,7 @@ __pycache__/
 .env
 .pytest_cache/
 assessment_results.json
+/submissions
+/assignments
 review_queue.json
 *.lock

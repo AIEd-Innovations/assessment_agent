@@ -13,6 +13,9 @@ seconds to tens of seconds per student with a real provider.
 4. `status` is `needs_review` (with `review_reasons`) if grading failed, the grader was unsure or saw an attempt to
    influence the grade, or the submission was truncated; otherwise `ai_graded`. An instructor's `final_score` replaces
    `score` and sets the status to `instructor_graded`.
+5. An instructor can have a submission graded again (`POST /results/{id}/regrade`), optionally with notes for the
+   grader. It uses the assignment's current rubric, solution, materials and model, and saves a **new** result with
+   `regrade_of` set; the original result is never changed. A regrade that fails saves nothing (502).
 
 ## Run locally
 
@@ -43,7 +46,7 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | Variable | Default | Purpose |
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
-| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results and instructor-provided specs are written |
+| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, submitted files and instructor-provided specs are written |
 | `CURRICULUM_URL` | none | curriculum designer base URL, for importing approved labs |
 
 **Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
@@ -97,18 +100,24 @@ The image runs as an unprivileged user and writes results to `/appdata` (mount a
 | `PUT /assignments/{id}/solution` | multipart `files`: replace the reference solution or answer key |
 | `POST`/`GET /assignments/{id}/materials`, `DELETE /assignments/{id}/materials/{name}` | add, list or remove course materials |
 | `POST /assignments/import/{lab_id}?assignment_id=` | import an approved curriculum designer lab (and its quiz) |
-| `GET /results?student_id&assignment_id&status`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results |
+| `GET /results?student_id&assignment_id&status&latest`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results; `latest=true` keeps only each student's newest result per assignment (their current grade) |
+| `POST /results/{submission_id}/regrade` | optional JSON `instructions`; header `X-LLM-API-Key`. Grades the stored files again as a new result |
 | `POST /results/{submission_id}/review` | JSON: `final_score` (0 to `max_score`) and `notes`; replaces the AI score |
 
 Key result fields: `criteria` (per-criterion score, justification and evidence), `score`, `max_score`, `status`,
-`review_reasons`, `final_score`, `feedback`, `model` and `mock`. The full shape is `AssessmentResult` in `models.py`.
+`review_reasons`, `final_score`, `feedback`, `model`, `mock`, and `regrade_of` and `regrade_instructions` on a regrade.
+The full shape is `AssessmentResult` in `models.py`.
+
+## Stored student work
+Submitted files are kept in `DATA_DIR/submissions/<submission_id>.json` so they can be regraded. No endpoint returns
+them. There is no access control or deletion yet, so do not put real students' work through the agent until
+instructor login is in place. Results graded before files were stored cannot be regraded (409); resubmit them.
 
 ## Known limitations (not yet addressed)
-- Only UTF-8 text files are accepted, and only their names and a hash are stored.
+- Only UTF-8 text files are accepted.
 - Code is read, not run, so subtle bugs can be missed.
-- No regrade endpoint, no CSV export, no student names (only `student_id`), no authentication.
+- No bulk regrade, no CSV export, no student names (only `student_id`), no authentication.
 - The assignment endpoints are not protected yet: anyone who can reach the agent can change a rubric.
-- Re-submitting appends a new result rather than replacing the old one.
 
 ## Tests
 ```bash
