@@ -7,6 +7,7 @@ take precedence over the built-in examples in assessment_agent/assignments/.
 An assignment folder holds:
 
     spec.json                         rubric and settings
+    agent_config.json                 the instructor's grading preferences (also for built-in examples)
     solution/                         reference solutions and answer keys, as text
     materials/                        course materials, as text
     originals/{solution,materials}/   uploads exactly as received
@@ -27,11 +28,13 @@ from pathlib import Path, PurePosixPath
 from pydantic import BaseModel, Field, computed_field, field_validator
 
 from assessment_agent import config
+from assessment_agent.agent_config import AgentConfig
 from assessment_agent.extract import UnsupportedFileError, extract_text, text_name
 from assessment_agent.llm.models import SUPPORTED_MODELS
 from assessment_agent.models import SubmissionFile
 
 _ID_PATTERN = re.compile(r"^[A-Za-z0-9_-]+$")
+AGENT_CONFIG_FILE = "agent_config.json"
 _FILE_NAME_PATTERN = re.compile(r"^[\w .()-]+$")
 
 
@@ -55,6 +58,7 @@ class GradingSpec(BaseModel):
     # Excluded from model_dump(), so the solution never reaches an API response.
     reference_solution: list[SubmissionFile] = Field(default=[], exclude=True)
     materials: list[SubmissionFile] = Field(default=[], exclude=True)
+    agent_config: AgentConfig = Field(default_factory=AgentConfig, exclude=True)
 
     @field_validator("model")
     @classmethod
@@ -116,7 +120,7 @@ def _read_texts(directory: Path) -> list[SubmissionFile]:
 
 
 def load_spec_with_hash(assignment_id: str) -> tuple[GradingSpec, str]:
-    """Load a spec and return (spec, sha256 over spec.json, the solution and the materials)."""
+    """Load a spec and return (spec, sha256 over spec.json, the grading preferences, the solution and the materials)."""
     directory = _assignment_dir(assignment_id)
     spec_path = directory / "spec.json"
     if not spec_path.is_file():
@@ -124,6 +128,13 @@ def load_spec_with_hash(assignment_id: str) -> tuple[GradingSpec, str]:
 
     spec_text = spec_path.read_text(encoding="utf-8")
     digest = hashlib.sha256(spec_text.encode("utf-8"))
+    # Preferences live in the uploaded folder even for built-in examples.
+    config_path = _uploaded_dir(assignment_id) / AGENT_CONFIG_FILE
+    agent_config = AgentConfig()
+    if config_path.is_file():
+        config_text = config_path.read_text(encoding="utf-8")
+        digest.update(AGENT_CONFIG_FILE.encode("utf-8") + config_text.encode("utf-8"))
+        agent_config = AgentConfig.model_validate_json(config_text)
     solution = _read_texts(directory / "solution")
     materials = _read_texts(directory / "materials")
     for prefix, files in (("solution/", solution), ("materials/", materials)):
@@ -136,6 +147,7 @@ def load_spec_with_hash(assignment_id: str) -> tuple[GradingSpec, str]:
     data["assignment_id"] = assignment_id
     data["reference_solution"] = solution
     data["materials"] = materials
+    data["agent_config"] = agent_config
     return GradingSpec(**data), digest.hexdigest()
 
 
@@ -194,6 +206,13 @@ def save_spec(spec: GradingSpec) -> None:
         if criterion.expected_answer:
             saved["expected_answer"] = criterion.expected_answer
     _write(_uploaded_dir(spec.assignment_id) / "spec.json", json.dumps(data, indent=2).encode("utf-8"))
+
+
+def save_agent_config(assignment_id: str, agent_config: AgentConfig) -> AgentConfig:
+    """Save the instructor's grading preferences for an existing assignment, built-in examples included."""
+    load_spec(assignment_id)
+    _write(_uploaded_dir(assignment_id) / AGENT_CONFIG_FILE, agent_config.model_dump_json(indent=2).encode("utf-8"))
+    return agent_config
 
 
 def replace_solution(assignment_id: str, files: list[tuple[str, bytes]]) -> list[str]:

@@ -88,6 +88,7 @@ def build_grading_prompt(
         title=spec.title or spec.assignment_id,
         description=spec.description or "Not provided.",
         guidance=spec.guidance or "None.",
+        preferences_block=spec.agent_config.prompt_block(),
         instructions_block=_instructions_block(instructions),
         criteria_block=_criteria_block(spec),
         solution_block=solution_block,
