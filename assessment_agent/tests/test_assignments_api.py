@@ -4,7 +4,7 @@ from unittest.mock import patch
 from fastapi.testclient import TestClient
 
 from assessment_agent import config
-from assessment_agent.spec import load_spec
+from assessment_agent.spec import load_spec, load_spec_with_hash
 from run import app
 
 client = TestClient(app)
@@ -44,29 +44,57 @@ def test_invalid_rubrics_are_rejected():
     assert create("../etc", RUBRIC).status_code == 404
 
 
-def test_assessment_agent_config_defaults_and_persists_per_assignment():
+PREFERENCES = {
+    "tone": "Encouraging",
+    "feedback_detail": "Detailed",
+    "partial_credit": "Strict",
+    "notes": "Explain why each rubric criterion earned its score.",
+}
+
+
+def test_agent_config_defaults_and_persists_per_assignment():
     create()
     default = client.get("/assignments/lab9/agent-config")
     assert default.status_code == 200
-    assert default.json()["tone"] == "Analytical"
-    assert default.json()["instructions"] == ""
+    assert default.json() == {"tone": "Neutral", "feedback_detail": "Standard", "partial_credit": "Balanced", "notes": ""}
 
-    body = {
-        "tone": "Encouraging",
-        "strictness": "Balanced",
-        "support_style": "Detailed explanations",
-        "feedback_focus": "Build understanding",
-        "guardrail": "Escalate uncertainty to the instructor",
-        "instructions": "Explain why each rubric criterion earned its score.",
-    }
-    saved = client.put("/assignments/lab9/agent-config", json=body)
+    saved = client.put("/assignments/lab9/agent-config", json=PREFERENCES)
     assert saved.status_code == 200
-    assert saved.json() == body
-    assert client.get("/assignments/lab9/agent-config").json() == body
+    assert saved.json() == PREFERENCES
+    assert client.get("/assignments/lab9/agent-config").json() == PREFERENCES
+    assert "agent_config" not in client.get("/assignments/lab9/rubric").json()
 
 
-def test_assessment_agent_config_requires_an_existing_assignment():
+def test_agent_config_changes_the_spec_hash_and_survives_a_rubric_replacement():
+    create()
+    before = load_spec_with_hash("lab9")[1]
+    client.put("/assignments/lab9/agent-config", json=PREFERENCES)
+    assert load_spec_with_hash("lab9")[1] != before
+    create(body={**RUBRIC, "title": "Lab 9 v2"})
+    assert load_spec("lab9").agent_config.tone == "Encouraging"
+
+
+def test_agent_config_for_a_built_in_example():
+    assert client.put("/assignments/hw1_sorting/agent-config", json=PREFERENCES).status_code == 200
+    spec = load_spec("hw1_sorting")
+    assert spec.source == "built-in"
+    assert spec.agent_config.partial_credit == "Strict"
+
+
+def test_deleting_an_assignment_deletes_its_agent_config():
+    create()
+    client.put("/assignments/lab9/agent-config", json=PREFERENCES)
+    assert client.delete("/assignments/lab9").status_code == 204
+    create()
+    assert client.get("/assignments/lab9/agent-config").json()["tone"] == "Neutral"
+
+
+def test_invalid_agent_configs_are_rejected():
+    create()
+    assert client.put("/assignments/lab9/agent-config", json={"tone": "Sarcastic"}).status_code == 422
+    assert client.put("/assignments/lab9/agent-config", json={"guardrail": "Never give a full answer"}).status_code == 422
     assert client.get("/assignments/nope/agent-config").status_code == 404
+    assert client.put("/assignments/nope/agent-config", json=PREFERENCES).status_code == 404
 
 
 def test_solution_is_stored_but_never_returned(make_pdf):

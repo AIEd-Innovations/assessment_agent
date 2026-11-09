@@ -11,6 +11,7 @@ from assessment_agent.agents.grader import (
     parse_grading,
     total_score,
 )
+from assessment_agent.agent_config import AgentConfig
 from assessment_agent.models import ProvenanceCollector, SubmissionFile
 from assessment_agent.spec import load_spec
 
@@ -143,14 +144,34 @@ def test_prompt_contains_task_rubric_and_solution(spec, files):
     assert "${" not in prompt
 
 
-def test_prompt_includes_the_instructor_selected_agent_behavior(spec, files, data_dir):
-    from assessment_agent.agent_config import AgentConfig, save_agent_config
-
-    save_agent_config(spec.assignment_id, AgentConfig(tone="Encouraging", feedback_focus="Build confidence"))
+def test_default_preferences_leave_the_prompt_unchanged(spec, files):
     prompt, _ = build_grading_prompt(spec, files, new_boundary())
-    assert "INSTRUCTOR-SELECTED AGENT BEHAVIOR" in prompt
-    assert "encouraging tone" in prompt
-    assert "build confidence" in prompt
+    assert "INSTRUCTOR PREFERENCES" not in prompt
+    assert "\n\n\nCOURSE MATERIAL" not in prompt
+
+
+@pytest.mark.parametrize("setting, value, sentence", [
+    ("tone", "Encouraging", "encouraging, supportive tone"),
+    ("tone", "Direct", "plainly and directly"),
+    ("feedback_detail", "Brief", "Keep the feedback brief"),
+    ("feedback_detail", "Detailed", "Make the feedback detailed"),
+    ("partial_credit", "Generous", "Give generous partial credit"),
+    ("partial_credit", "Strict", "Give partial credit sparingly"),
+])
+def test_each_preference_adds_its_sentence(spec, files, setting, value, sentence):
+    preferred = spec.model_copy(update={"agent_config": AgentConfig(**{setting: value})})
+    prompt, _ = build_grading_prompt(preferred, files, new_boundary())
+    assert "INSTRUCTOR PREFERENCES" in prompt
+    assert sentence in prompt
+    assert prompt.count("\n- ", prompt.index("INSTRUCTOR PREFERENCES"), prompt.index("COURSE MATERIAL")) == 1
+
+
+def test_preferences_and_regrade_notes_both_reach_the_prompt(spec, files):
+    preferred = spec.model_copy(update={"agent_config": AgentConfig(notes="Comments are not required.")})
+    boundary = new_boundary()
+    prompt, _ = build_grading_prompt(preferred, files, boundary, "Recursion is fine.")
+    assert "- Notes from the instructor: Comments are not required." in prompt
+    assert prompt.index("INSTRUCTOR PREFERENCES") < prompt.index("INSTRUCTOR NOTES") < prompt.index(boundary)
 
 
 def test_prompt_contains_materials_and_expected_answers(spec, files, monkeypatch):

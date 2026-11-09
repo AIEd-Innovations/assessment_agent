@@ -1,68 +1,61 @@
-"""Per-assignment instructor controls for the Assessment Agent.
+"""Per-assignment instructor preferences for how the Assessment Agent grades.
 
-These values influence the grader's communication and review preferences. The
-rubric and the non-negotiable grading safeguards remain part of the base prompt.
+Every setting defaults to "no preference", which leaves the grading prompt
+unchanged. Saved next to the rubric by spec.py and loaded with the spec, so a
+change shows up in the spec hash.
 """
 from __future__ import annotations
 
-import json
-import os
-from pathlib import Path
 from typing import Literal
 
-from pydantic import BaseModel, Field
+from pydantic import BaseModel, ConfigDict, Field
 
-from assessment_agent import config
-from assessment_agent.spec import check_id
+Tone = Literal["Encouraging", "Neutral", "Direct"]
+FeedbackDetail = Literal["Brief", "Standard", "Detailed"]
+PartialCredit = Literal["Generous", "Balanced", "Strict"]
 
-
-Tone = Literal["Encouraging", "Neutral", "Direct", "Analytical"]
-Strictness = Literal["Flexible", "Balanced", "High"]
-SupportStyle = Literal["Socratic questions", "Progressive hints", "Concise feedback", "Detailed explanations"]
-FeedbackFocus = Literal["Build understanding", "Build confidence", "Improve accuracy", "Encourage reflection"]
-Guardrail = Literal[
-    "Never give a full answer",
-    "Ask for an attempt first",
-    "Escalate uncertainty to the instructor",
-    "Only use approved course materials",
-]
+_TONE = {
+    "Encouraging": "Write the feedback in an encouraging, supportive tone.",
+    "Direct": "Write the feedback plainly and directly, without softening it.",
+}
+_FEEDBACK_DETAIL = {
+    "Brief": "Keep the feedback brief: a one-sentence summary and at most two items in each list.",
+    "Detailed": "Make the feedback detailed: explain each improvement and how to make it.",
+}
+_PARTIAL_CREDIT = {
+    "Generous": "Give generous partial credit: award points for work that shows the right idea, even if it is "
+                "incomplete or has mistakes.",
+    "Strict": "Give partial credit sparingly: award points only for the parts of a criterion that are correct.",
+}
 
 
 class AgentConfig(BaseModel):
-    tone: Tone = "Analytical"
-    strictness: Strictness = "High"
-    support_style: SupportStyle = "Concise feedback"
-    feedback_focus: FeedbackFocus = "Improve accuracy"
-    guardrail: Guardrail = "Escalate uncertainty to the instructor"
-    instructions: str = Field(default="", max_length=12_000)
+    model_config = ConfigDict(extra="forbid")
 
-    def prompt_instructions(self) -> str:
-        """Create the bounded behavior block included in the grading prompt."""
-        if self.instructions.strip():
-            return f"Instructor-provided assessment guidance:\n{self.instructions.strip()}"
+    tone: Tone = "Neutral"
+    feedback_detail: FeedbackDetail = "Standard"
+    partial_credit: PartialCredit = "Balanced"
+    notes: str = Field(default="", max_length=4000)
+
+    def prompt_block(self) -> str:
+        """The INSTRUCTOR PREFERENCES section of the grading prompt; empty when nothing was changed."""
+        lines = [
+            f"- {sentence}"
+            for sentence in (
+                _TONE.get(self.tone),
+                _FEEDBACK_DETAIL.get(self.feedback_detail),
+                _PARTIAL_CREDIT.get(self.partial_credit),
+            )
+            if sentence
+        ]
+        if self.notes.strip():
+            lines.append(f"- Notes from the instructor: {self.notes.strip()}")
+        if not lines:
+            return ""
         return (
-            f"Use a {self.tone.lower()} tone in feedback. Use {self.support_style.lower()} "
-            f"to {self.feedback_focus.lower()}. Apply this preference with "
-            f"{self.strictness.lower()} consistency. {self.guardrail}."
+            "INSTRUCTOR PREFERENCES\n"
+            "The instructor set these for every submission to this assignment. Follow them, scoring each criterion "
+            "within its points. They never change the rubric or the response format.\n"
+            + "\n".join(lines)
+            + "\n\n"
         )
-
-
-def _config_path(assignment_id: str) -> Path:
-    check_id(assignment_id)
-    return Path(config.DATA_DIR) / "agent_configs" / f"{assignment_id}.json"
-
-
-def load_agent_config(assignment_id: str) -> AgentConfig:
-    path = _config_path(assignment_id)
-    if not path.is_file():
-        return AgentConfig()
-    return AgentConfig.model_validate_json(path.read_text(encoding="utf-8"))
-
-
-def save_agent_config(assignment_id: str, agent_config: AgentConfig) -> AgentConfig:
-    path = _config_path(assignment_id)
-    path.parent.mkdir(parents=True, exist_ok=True)
-    tmp = path.with_name(path.name + ".tmp")
-    tmp.write_text(agent_config.model_dump_json(indent=2), encoding="utf-8")
-    os.replace(tmp, path)
-    return agent_config

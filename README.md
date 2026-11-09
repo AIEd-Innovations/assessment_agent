@@ -66,6 +66,12 @@ an instructor to check). Solutions and materials can be text in any language, PD
 the extracted text is what the grader reads, and the originals are kept. Up to 40,000 characters of materials are given
 to the grader, and the upload response warns when there is more.
 
+Each assignment, built-in examples included, can also have grading preferences (`/assignments/{id}/agent-config`):
+feedback tone (Encouraging, Neutral, Direct), feedback detail (Brief, Standard, Detailed), partial credit (Generous,
+Balanced, Strict) and free-text notes. The defaults leave the grading prompt unchanged; anything else is added to it
+as instructions, and partial credit is the one setting that can change scores. Preferences are saved in the
+assignment's folder as `agent_config.json`, count towards the spec hash, and are deleted with the assignment.
+
 An approved curriculum designer lab can be imported with `POST /assignments/import/{lab_id}` (set `CURRICULUM_URL`).
 The import is a saved copy, so grading never depends on the curriculum designer: its criterion weights are scaled to
 100 points (the code/report/manual split is ignored), its quiz becomes a separate `<id>-quiz` assignment with the
@@ -97,6 +103,7 @@ The image runs as an unprivileged user and writes results to `/appdata` (mount a
 | `GET /models` | supported models with their vendor, and the default |
 | `GET /assignments`, `/assignments/{id}/rubric` | assignments with a spec; the rubric view never includes the solution, materials or expected answers |
 | `PUT /assignments/{id}`, `DELETE /assignments/{id}` | create or replace a rubric (JSON), or delete an uploaded assignment |
+| `GET`/`PUT /assignments/{id}/agent-config` | the instructor's grading preferences: `tone`, `feedback_detail`, `partial_credit`, `notes` |
 | `PUT /assignments/{id}/solution` | multipart `files`: replace the reference solution or answer key |
 | `POST`/`GET /assignments/{id}/materials`, `DELETE /assignments/{id}/materials/{name}` | add, list or remove course materials |
 | `POST /assignments/import/{lab_id}?assignment_id=` | import an approved curriculum designer lab (and its quiz) |

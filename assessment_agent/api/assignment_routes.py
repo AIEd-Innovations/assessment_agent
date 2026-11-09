@@ -4,7 +4,7 @@ from fastapi import APIRouter, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
 from assessment_agent import config, spec as specs
-from assessment_agent.agent_config import AgentConfig, load_agent_config, save_agent_config
+from assessment_agent.agent_config import AgentConfig
 from assessment_agent.curriculum import CurriculumError, import_lab
 from assessment_agent.spec import Criterion, GradingSpec, SpecNotFoundError
 
@@ -69,18 +69,16 @@ async def get_rubric(assignment_id: str):
 
 @router.get("/assignments/{assignment_id}/agent-config", response_model=AgentConfig)
 async def get_agent_config(assignment_id: str):
-    """Return the instructor's assessment-agent behavior settings for an assignment."""
+    """The instructor's grading preferences for an assignment: feedback tone and detail, partial credit, notes."""
     with _http_errors():
-        specs.load_spec(assignment_id)
-        return load_agent_config(assignment_id)
+        return specs.load_spec(assignment_id).agent_config
 
 
 @router.put("/assignments/{assignment_id}/agent-config", response_model=AgentConfig)
 async def put_agent_config(assignment_id: str, body: AgentConfig):
-    """Save instructor-controlled feedback behavior for an existing assignment."""
+    """Save the grading preferences for an assignment. The defaults leave grading unchanged."""
     with _http_errors():
-        specs.load_spec(assignment_id)
-        return save_agent_config(assignment_id, body)
+        return specs.save_agent_config(assignment_id, body)
 
 
 @router.post("/assignments/import/{lab_id}")
