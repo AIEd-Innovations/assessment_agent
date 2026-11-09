@@ -181,3 +181,102 @@ def test_provenance_endpoint(data_dir: Path, submissions):
 def test_provenance_missing_on_old_results(data_dir: Path):
     _seed(data_dir, _result("legacy"))
     assert client.get("/results/legacy/provenance").status_code == 404
+
+
+class PromptRecorder(SonnetProvider):
+    def __init__(self):
+        self.prompts = []
+
+    async def complete_with_raw(self, prompt: str):
+        self.prompts.append(prompt)
+        return await super().complete_with_raw(prompt)
+
+
+class FailingProvider(SonnetProvider):
+    async def complete_with_raw(self, prompt: str):
+        return {}, "{}", 5
+
+
+def _submit_code(submissions, **kwargs) -> dict:
+    code = submissions["perfect_code"]
+    return submit((code.filename, code.content.encode()), **kwargs).json()
+
+
+def regrade(submission_id, json=None, key="sk-test"):
+    return client.post(f"/results/{submission_id}/regrade", json=json, headers={"X-LLM-API-Key": key} if key else None)
+
+
+def test_submitted_files_are_stored_for_regrading(data_dir: Path, submissions):
+    submission_id = _submit_code(submissions)["submission_id"]
+    stored = json.loads((data_dir / "submissions" / f"{submission_id}.json").read_text())
+    assert stored == [submissions["perfect_code"].model_dump()]
+    assert submissions["perfect_code"].content not in client.get(f"/results/{submission_id}").text
+
+
+def test_regrade_saves_a_new_linked_result(data_dir: Path, submissions):
+    original = _submit_code(submissions)
+    recorder = PromptRecorder()
+    with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=recorder):
+        resp = regrade(original["submission_id"], json={"instructions": "Recursion is fine."})
+    assert resp.status_code == 200
+    new = resp.json()
+    assert new["submission_id"] != original["submission_id"]
+    assert (new["regrade_of"], new["regrade_instructions"]) == (original["submission_id"], "Recursion is fine.")
+    assert (new["student_id"], new["assignment_id"], new["files"]) == ("s1", "hw1_sorting", original["files"])
+    assert (new["mock"], new["status"]) == (False, "ai_graded")
+    assert "Recursion is fine." in recorder.prompts[0]
+    assert submissions["perfect_code"].content in recorder.prompts[0]
+
+    assert client.get(f"/results/{original['submission_id']}").json() == original
+    assert [r["submission_id"] for r in client.get("/results").json()] == [original["submission_id"], new["submission_id"]]
+    # the regrade's files are stored too, so it can be regraded again
+    assert regrade(new["submission_id"], key=None).status_code == 200
+
+
+def test_regrade_uses_the_current_rubric(data_dir: Path, submissions):
+    original = _submit_code(submissions, assignment_id="hw2_linked_list")
+    rubric = {"title": "Linked list", "criteria": [{"id": "only", "name": "Only", "description": "All of it", "max_points": 10}]}
+    assert client.put("/assignments/hw2_linked_list", json=rubric).status_code == 200
+    new = regrade(original["submission_id"], key=None).json()
+    assert original["max_score"] == 100
+    assert new["max_score"] == 10
+    assert [c["id"] for c in new["criteria"]] == ["only"]
+
+
+def test_regrade_without_a_key_is_a_marked_mock_grade(data_dir: Path, submissions):
+    original = _submit_code(submissions)
+    new = regrade(original["submission_id"], key=None).json()
+    assert (new["mock"], new["status"]) == (True, "needs_review")
+    assert new["regrade_instructions"] == ""
+
+
+def test_failed_regrade_keeps_the_previous_grade(data_dir: Path, submissions):
+    original = _submit_code(submissions)
+    with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=FailingProvider()):
+        resp = regrade(original["submission_id"])
+    assert resp.status_code == 502
+    assert client.get("/results").json() == [original]
+
+
+def test_regrade_with_a_rejected_key_is_401_and_saves_nothing(data_dir: Path, submissions):
+    original = _submit_code(submissions)
+    with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=RejectedKeyProvider()):
+        resp = regrade(original["submission_id"], key="sk-bad")
+    assert resp.status_code == 401
+    assert client.get("/results").json() == [original]
+
+
+def test_regrade_without_stored_files_is_409(data_dir: Path):
+    _seed(data_dir, _result("legacy"))
+    assert regrade("legacy").status_code == 409
+
+
+def test_regrade_unknown_submission_is_404():
+    assert regrade("missing").status_code == 404
+
+
+def test_latest_keeps_the_newest_result_per_student_and_assignment(data_dir: Path):
+    other = {**_result("c"), "student_id": "s2"}
+    _seed(data_dir, _result("a"), other, _result("b", score=90.0))
+    got = client.get("/results", params={"latest": True}).json()
+    assert sorted(r["submission_id"] for r in got) == ["b", "c"]

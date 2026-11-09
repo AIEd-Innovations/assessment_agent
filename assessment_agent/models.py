@@ -71,7 +71,9 @@ class AssessmentResult(BaseModel):
     submission_id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     student_id: str
     assignment_id: str
-    files: list[str] = []  # filenames only; submitted text is not stored
+    files: list[str] = []  # filenames; the submitted text is stored separately (submissions.py)
+    regrade_of: Optional[str] = None  # the submission_id this result regrades
+    regrade_instructions: str = ""  # the instructor's notes to the grader for that regrade
     model: str = ""  # the model that graded it; "mock" when no API key was provided
     mock: bool = False  # True when graded by the offline mock model: not a real assessment
     criteria: list[CriterionScore] = []
@@ -96,3 +98,7 @@ class AssessmentRequest(BaseModel):
 class ReviewRequest(BaseModel):
     final_score: float
     notes: str = ""
+
+
+class RegradeRequest(BaseModel):
+    instructions: str = ""

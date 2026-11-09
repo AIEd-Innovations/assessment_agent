@@ -29,7 +29,9 @@ def hash_files(files: list[SubmissionFile]) -> str:
     return digest.hexdigest()
 
 
-async def assess_submission(request: AssessmentRequest, api_key: str | None = None) -> AssessmentResult:
+async def assess_submission(
+    request: AssessmentRequest, api_key: str | None = None, instructions: str = ""
+) -> AssessmentResult:
     """
     Grade a submission against its assignment's spec.
 
@@ -39,7 +41,8 @@ async def assess_submission(request: AssessmentRequest, api_key: str | None = No
 
     The assignment's spec names the model; api_key is the teacher's key for that
     model's vendor. Without a key the offline mock model grades it, and the
-    result is marked as a mock grade.
+    result is marked as a mock grade. instructions are an instructor's notes
+    to the grader when regrading.
 
     Raises SpecNotFoundError if the assignment has no spec, and LLMAuthError if
     the provider rejects the key.
@@ -55,7 +58,7 @@ async def assess_submission(request: AssessmentRequest, api_key: str | None = No
         submission_hash=hash_files(request.files),
     )
 
-    grading = await grade_submission(spec, request.files, provider, collector)
+    grading = await grade_submission(spec, request.files, provider, collector, instructions)
 
     reasons = [mock_reason(spec.model)] if mock else []
     reasons += grading.review_reasons
