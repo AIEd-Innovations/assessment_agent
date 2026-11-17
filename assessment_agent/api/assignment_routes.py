@@ -1,16 +1,16 @@
 from contextlib import contextmanager
 
-from fastapi import APIRouter, File, HTTPException, Response, UploadFile
+from fastapi import APIRouter, Depends, File, HTTPException, Response, UploadFile
 from pydantic import BaseModel
 
 from assessment_agent import config, spec as specs
 from assessment_agent.agent_config import AgentConfig
+from assessment_agent.auth import require_instructor
 from assessment_agent.curriculum import CurriculumError, import_lab
 from assessment_agent.spec import Criterion, GradingSpec, SpecNotFoundError
 
-# TODO: anyone who can reach the agent can change grading materials. Restrict the
-# write endpoints below to instructors once there is a login.
-router = APIRouter(tags=["assignments"])
+# Instructors only once Microsoft sign-in is configured (auth.py).
+router = APIRouter(tags=["assignments"], dependencies=[Depends(require_instructor)])
 
 
 class SpecInput(BaseModel):
