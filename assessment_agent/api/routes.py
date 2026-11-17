@@ -2,7 +2,7 @@ from dataclasses import asdict
 from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, UploadFile, File, Form, Header, HTTPException
+from fastapi import APIRouter, Depends, UploadFile, File, Form, Header, HTTPException
 
 from assessment_agent.models import (
     AssessmentRequest,
@@ -16,8 +16,10 @@ from assessment_agent.agents.orchestrator import assess_submission
 from assessment_agent.llm import SUPPORTED_MODELS, LLMAuthError
 from assessment_agent.spec import SpecNotFoundError
 from assessment_agent import config, persistence, submissions
+from assessment_agent.auth import require_instructor
 
-router = APIRouter(tags=["assessment"])
+# Instructors only once Microsoft sign-in is configured (auth.py).
+router = APIRouter(tags=["assessment"], dependencies=[Depends(require_instructor)])
 
 # The teacher's API key for the assignment's model vendor. Used for this request only, never stored or logged.
 ApiKey = Header(None, alias="X-LLM-API-Key")

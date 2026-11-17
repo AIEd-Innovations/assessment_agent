@@ -15,6 +15,11 @@ MAX_MATERIAL_FILE_MB = 20  # per uploaded solution or material file
 # Curriculum designer base URL for importing approved labs, e.g. http://localhost:8003
 CURRICULUM_URL = os.environ.get("CURRICULUM_URL", "")
 
+# Microsoft sign-in (see auth.py). With AUTH_MS_CLIENT_ID unset every endpoint is open, as before.
+AUTH_MS_CLIENT_ID = os.environ.get("AUTH_MS_CLIENT_ID", "")  # the instructor UI's VITE_MS_CLIENT_ID
+AUTH_MS_TENANT_ID = os.environ.get("AUTH_MS_TENANT_ID", "1b0d02db-fc9e-4495-9537-1d379cca2ae7")  # Cal Poly
+AUTH_ALLOWED_EMAIL_DOMAIN = os.environ.get("AUTH_ALLOWED_EMAIL_DOMAIN", "calpoly.edu").lower()
+
 # Paths
 _PACKAGE_DIR = os.path.dirname(os.path.abspath(__file__))
 # Where results and instructor-provided specs are written. Override with DATA_DIR (for example a mounted volume).

@@ -48,6 +48,13 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
 | `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, submitted files and instructor-provided specs are written |
 | `CURRICULUM_URL` | none | curriculum designer base URL, for importing approved labs |
+| `AUTH_MS_CLIENT_ID` | none (sign-in off) | the instructor UI's Microsoft app (client) ID; when set, every endpoint except `/health` needs a signed-in instructor |
+| `AUTH_MS_TENANT_ID` | Cal Poly's tenant | the Microsoft directory sign-ins must come from |
+| `AUTH_ALLOWED_EMAIL_DOMAIN` | `calpoly.edu` | the only email domain let in |
+
+**Sign-in:** with `AUTH_MS_CLIENT_ID` set, requests need `Authorization: Bearer <Microsoft ID token>`, which the instructor UI
+sends once someone signs in. The token's signature (Microsoft's published keys), audience, issuer, Cal Poly tenant, expiry and
+email domain are checked (`auth.py`); anything else gets 401 with the reason. Without it the API is open, as for local development.
 
 **Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
 local Vite dev server, so a deployed UI would be blocked by the browser even though the agent is healthy. `DATA_DIR` is created at startup and the
@@ -123,8 +130,9 @@ instructor login is in place. Results graded before files were stored cannot be 
 ## Known limitations (not yet addressed)
 - Only UTF-8 text files are accepted.
 - Code is read, not run, so subtle bugs can be missed.
-- No bulk regrade, no CSV export, no student names (only `student_id`), no authentication.
-- The assignment endpoints are not protected yet: anyone who can reach the agent can change a rubric.
+- No bulk regrade, no CSV export, no student names (only `student_id`).
+- Sign-in is all or nothing: any @calpoly.edu account counts as an instructor (students have them too), and instructors
+  are not yet limited to their own assignments. Both need the shared `users` collection.
 
 ## Tests
 ```bash
