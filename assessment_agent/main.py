@@ -1,15 +1,27 @@
 import os
+from contextlib import asynccontextmanager
 
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from assessment_agent import config
+from aied_db import get_db, ping
 from assessment_agent.api.assignment_routes import router as assignment_router
 from assessment_agent.api.routes import router
 
 
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    # Tests set ``app.state.database`` to mongomock before starting the
+    # client. Production establishes one pool and fails early if Atlas is
+    # unavailable.
+    if not hasattr(app.state, "database"):
+        ping()
+        app.state.database = get_db()
+    yield
+
+
 def create_assessment_app() -> FastAPI:
     """Create the Assessment Agent FastAPI application."""
-    config.ensure_data_dir()
     app = FastAPI(
         title="AIEIC Assessment Agent",
         description=(
@@ -19,6 +31,7 @@ def create_assessment_app() -> FastAPI:
             "writes feedback."
         ),
         version="0.1.0",
+        lifespan=lifespan,
     )
     # Browser UIs (the instructor UI) call this agent directly. Set CORS_ORIGINS to a
     # comma-separated list of allowed origins; the default covers the Vite dev server.

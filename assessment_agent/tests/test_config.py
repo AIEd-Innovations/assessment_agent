@@ -34,14 +34,12 @@ def test_ensure_data_dir_rejects_an_unwritable_directory(tmp_path, monkeypatch):
         locked.chmod(0o700)
 
 
-@pytest.mark.skipif(os.geteuid() == 0, reason="root can write anywhere")
-def test_app_refuses_to_start_when_data_dir_is_unwritable(tmp_path, monkeypatch):
+def test_app_no_longer_depends_on_a_writable_data_directory(tmp_path, monkeypatch):
     locked = tmp_path / "locked"
     locked.mkdir()
     locked.chmod(0o500)
     monkeypatch.setattr(cfg, "DATA_DIR", str(locked))
     try:
-        with pytest.raises(RuntimeError, match="not writable"):
-            create_assessment_app()
+        assert create_assessment_app() is not None
     finally:
         locked.chmod(0o700)

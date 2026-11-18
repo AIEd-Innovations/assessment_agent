@@ -1,191 +1,110 @@
 from dataclasses import asdict
-from datetime import datetime
 from typing import Optional
 
-from fastapi import APIRouter, Depends, UploadFile, File, Form, Header, HTTPException
+from fastapi import APIRouter, Depends, File, Form, Header, HTTPException, Request, UploadFile
 
-from assessment_agent.models import (
-    AssessmentRequest,
-    AssessmentResult,
-    RegradeRequest,
-    ResultStatus,
-    ReviewRequest,
-    SubmissionFile,
-)
+from assessment_agent import config
 from assessment_agent.agents.orchestrator import assess_submission
-from assessment_agent.llm import SUPPORTED_MODELS, LLMAuthError
+from assessment_agent.auth import Instructor, require_instructor
+from assessment_agent.database import agent_repo, owner_repo
+from assessment_agent.llm import LLMAuthError, SUPPORTED_MODELS
+from assessment_agent.models import AssessmentRequest, AssessmentResult, RegradeRequest, ResultStatus, ReviewRequest, SubmissionFile
 from assessment_agent.spec import SpecNotFoundError
-from assessment_agent import config, persistence, submissions
-from assessment_agent.auth import require_instructor
 
-# Instructors only once Microsoft sign-in is configured (auth.py).
 router = APIRouter(tags=["assessment"], dependencies=[Depends(require_instructor)])
-
-# The teacher's API key for the assignment's model vendor. Used for this request only, never stored or logged.
 ApiKey = Header(None, alias="X-LLM-API-Key")
 
 
-def _save_result(result: AssessmentResult, files: list[SubmissionFile]) -> None:
-    """Persist the result to the JSON file, and the submitted files so it can be regraded."""
-    submissions.save_files(result.submission_id, files)
-    persistence.append_json(config.RESULTS_FILE, result.model_dump())
-
-
-def _get_results() -> list[dict]:
-    return persistence.read_json(config.RESULTS_FILE)
-
-
-def _find_result(submission_id: str) -> dict:
-    target = next((r for r in _get_results() if r["submission_id"] == submission_id), None)
-    if target is None:
-        raise HTTPException(404, f"Submission '{submission_id}' not found")
-    return target
-
-
-async def _grade(request: AssessmentRequest, api_key: str | None, instructions: str = "") -> AssessmentResult:
-    try:
-        return await assess_submission(request, api_key, instructions)
-    except SpecNotFoundError as exc:
-        raise HTTPException(404, str(exc))
-    except LLMAuthError as exc:
-        raise HTTPException(401, str(exc))
-
-
 async def _read_text_upload(upload: UploadFile) -> str:
-    """Read an UploadFile as UTF-8 text. Raise HTTP 400 on bad bytes."""
     try:
         return (await upload.read()).decode("utf-8")
     except UnicodeDecodeError:
         raise HTTPException(400, f"{upload.filename} is not a UTF-8 text file")
 
 
-async def _assess(request: AssessmentRequest, api_key: str | None) -> AssessmentResult:
-    if not request.files:
+async def _grade(body: AssessmentRequest, repo, api_key: str | None, instructions: str = "") -> AssessmentResult:
+    try:
+        return await assess_submission(body, repo, api_key, instructions)
+    except SpecNotFoundError as exc:
+        raise HTTPException(404, str(exc))
+    except LLMAuthError as exc:
+        raise HTTPException(401, str(exc))
+
+
+async def _assess(request: Request, course_id: str, body: AssessmentRequest, api_key: str | None, instructor: Instructor | None) -> AssessmentResult:
+    if not body.files:
         raise HTTPException(400, "At least one file is required")
-    if sum(len(f.content) for f in request.files) > config.MAX_UPLOAD_CHARS:
+    if sum(len(f.content) for f in body.files) > config.MAX_UPLOAD_CHARS:
         raise HTTPException(400, f"Submission exceeds {config.MAX_UPLOAD_CHARS} characters")
-    result = await _grade(request, api_key)
-    _save_result(result, request.files)
-    return result
+    owner_repo(request, course_id, instructor)
+    result = await _grade(body, agent_repo(request, course_id), api_key)
+    return agent_repo(request, course_id).insert_result(result.model_dump(), submitted_files=[file.model_dump() for file in body.files])
 
 
 @router.post("/submit", response_model=AssessmentResult)
-async def submit_assessment(
-    student_id: str = Form(...),
-    assignment_id: str = Form(...),
-    files: list[UploadFile] = File(...),
-    api_key: str | None = ApiKey,
-):
-    """Submit any number of text files (code in any language, reports, notes).
-
-    Send the teacher's API key in the X-LLM-API-Key header. Without it the mock model grades the submission."""
-    submission = [
-        SubmissionFile(filename=f.filename or f"file{i + 1}", content=await _read_text_upload(f))
-        for i, f in enumerate(files)
-    ]
-    return await _assess(AssessmentRequest(
-        student_id=student_id, assignment_id=assignment_id, files=submission,
-    ), api_key)
+async def submit_assessment(request: Request, course_id: str = Form(...), student_id: str = Form(...), assignment_id: str = Form(...), files: list[UploadFile] = File(...), api_key: str | None = ApiKey, instructor: Instructor | None = Depends(require_instructor)):
+    submission = [SubmissionFile(filename=f.filename or f"file{i + 1}", content=await _read_text_upload(f)) for i, f in enumerate(files)]
+    return await _assess(request, course_id, AssessmentRequest(student_id=student_id, assignment_id=assignment_id, files=submission), api_key, instructor)
 
 
 @router.post("/submit-json", response_model=AssessmentResult)
-async def submit_assessment_json(request: AssessmentRequest, api_key: str | None = ApiKey):
-    """Submit as JSON: student_id, assignment_id and files [{filename, content}]. API key as for /submit."""
-    return await _assess(request, api_key)
+async def submit_assessment_json(request: Request, course_id: str, body: AssessmentRequest, api_key: str | None = ApiKey, instructor: Instructor | None = Depends(require_instructor)):
+    return await _assess(request, course_id, body, api_key, instructor)
 
 
 @router.get("/models")
-async def list_models():
-    """Models an assignment can be graded with, and the default for specs that name none."""
+async def list_models(request: Request, course_id: str, instructor: Instructor | None = Depends(require_instructor)):
+    owner_repo(request, course_id, instructor)
     return {"default": config.DEFAULT_MODEL, "models": [asdict(m) for m in SUPPORTED_MODELS.values()]}
 
 
 @router.get("/results")
-async def list_results(
-    student_id: str = None,
-    assignment_id: str = None,
-    status: Optional[ResultStatus] = None,
-    latest: bool = False,
-):
-    """List assessment results with optional filters. latest=true keeps only the newest result for each student
-    and assignment, which is their current grade."""
-    results = _get_results()
-    if latest:
-        newest = {}
-        for r in results:
-            newest[(r["student_id"], r["assignment_id"])] = r
-        results = list(newest.values())
-    if student_id:
-        results = [r for r in results if r["student_id"] == student_id]
-    if assignment_id:
-        results = [r for r in results if r["assignment_id"] == assignment_id]
-    if status:
-        results = [r for r in results if r.get("status") == status]
-    return results
+async def list_results(request: Request, course_id: str, instructor: Instructor | None = Depends(require_instructor), student_id: str | None = None, assignment_id: str | None = None, status: Optional[ResultStatus] = None, latest: bool = False):
+    repo, _ = owner_repo(request, course_id, instructor)
+    return repo.list_results(student_id=student_id, assignment_id=assignment_id, status=status, latest=latest)
 
 
 @router.get("/results/{submission_id}")
-async def get_result(submission_id: str):
-    """Get a specific assessment result."""
-    return _find_result(submission_id)
-
-
-@router.post("/results/{submission_id}/regrade", response_model=AssessmentResult)
-async def regrade_result(submission_id: str, regrade: RegradeRequest | None = None, api_key: str | None = ApiKey):
-    """Grade a submission again with the assignment's current rubric, solution, materials and model.
-
-    Saves a new result whose regrade_of is this submission_id; the original is left unchanged. Optional
-    instructions are passed to the grader. API key as for /submit."""
-    original = _find_result(submission_id)
-    files = submissions.load_files(submission_id)
-    if files is None:
-        raise HTTPException(409, "The submitted files were not stored for this result; resubmit to grade it again")
-
-    instructions = regrade.instructions.strip() if regrade else ""
-    request = AssessmentRequest(student_id=original["student_id"], assignment_id=original["assignment_id"], files=files)
-    result = await _grade(request, api_key, instructions)
-    if result.score is None:
-        raise HTTPException(502, "Regrading failed, so no new result was saved; the previous grade is unchanged")
-
-    result.regrade_of = submission_id
-    result.regrade_instructions = instructions
-    _save_result(result, files)
+async def get_result(request: Request, submission_id: str, course_id: str, instructor: Instructor | None = Depends(require_instructor)):
+    result = owner_repo(request, course_id, instructor)[0].get_result(submission_id)
+    if result is None:
+        raise HTTPException(404, f"Submission '{submission_id}' not found")
     return result
 
 
+@router.post("/results/{submission_id}/regrade", response_model=AssessmentResult)
+async def regrade_result(request: Request, submission_id: str, course_id: str, regrade: RegradeRequest | None = None, api_key: str | None = ApiKey, instructor: Instructor | None = Depends(require_instructor)):
+    repo, _ = owner_repo(request, course_id, instructor)
+    original = repo.get_result(submission_id)
+    if original is None:
+        raise HTTPException(404, f"Submission '{submission_id}' not found")
+    files = repo.get_submitted_files(submission_id)
+    if files is None:
+        raise HTTPException(409, "The submitted files were not stored for this result; resubmit to grade it again")
+    instructions = regrade.instructions.strip() if regrade else ""
+    body = AssessmentRequest(student_id=original["student_id"], assignment_id=original["assignment_id"], files=[SubmissionFile(**file) for file in files])
+    result = await _grade(body, agent_repo(request, course_id), api_key, instructions)
+    if result.score is None:
+        raise HTTPException(502, "Regrading failed, so no new result was saved; the previous grade is unchanged")
+    result.regrade_of, result.regrade_instructions = submission_id, instructions
+    return agent_repo(request, course_id).insert_result(result.model_dump(), submitted_files=files)
+
+
 @router.post("/results/{submission_id}/review")
-async def review_result(submission_id: str, review: ReviewRequest):
-    """Record the instructor's grade. It replaces the AI score."""
-    # The curriculum designer's rubric still reserves a 10% manual_weight for the instructor.
-    # If that survives its rubric redesign, this becomes an adjustment rather than a replacement.
-    target = _find_result(submission_id)
-
-    if review.final_score < 0:
-        raise HTTPException(400, "final_score cannot be negative")
-    # Results stored before rubric grading have no max_score.
-    max_score = target.get("max_score")
-    if max_score is not None and review.final_score > max_score:
-        raise HTTPException(400, f"final_score cannot exceed {max_score:g}")
-
-    updates = {
-        "final_score": review.final_score,
-        "instructor_notes": review.notes,
-        "status": "instructor_graded",
-        "reviewed_at": datetime.now().isoformat(),
-    }
-    persistence.update_json(config.RESULTS_FILE, "submission_id", submission_id, updates)
-    return {**target, **updates}
+async def review_result(request: Request, submission_id: str, course_id: str, review: ReviewRequest, instructor: Instructor | None = Depends(require_instructor)):
+    repo, actor_id = owner_repo(request, course_id, instructor)
+    try:
+        result = repo.review_result(submission_id, final_score=review.final_score, notes=review.notes, reviewed_by=actor_id)
+    except ValueError as exc:
+        raise HTTPException(400, str(exc))
+    if result is None:
+        raise HTTPException(404, f"Submission '{submission_id}' not found")
+    return result
 
 
 @router.get("/results/{submission_id}/provenance")
-async def get_provenance(submission_id: str):
-    """Get the provenance record for a submission: model, prompt and input hashes, call timings."""
-    results = _get_results()
-    for r in results:
-        if r["submission_id"] == submission_id:
-            provenance = r.get("provenance")
-            if provenance is None:
-                raise HTTPException(404, f"No provenance record for submission '{submission_id}'")
-            return provenance
-    raise HTTPException(404, f"Submission '{submission_id}' not found")
-
+async def get_provenance(request: Request, submission_id: str, course_id: str, instructor: Instructor | None = Depends(require_instructor)):
+    provenance = owner_repo(request, course_id, instructor)[0].get_provenance(submission_id)
+    if provenance is None:
+        raise HTTPException(404, f"No provenance record for submission '{submission_id}'")
+    return provenance

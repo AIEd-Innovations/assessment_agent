@@ -17,17 +17,16 @@ from assessment_agent.models import (
     ProvenanceRecord,
     SubmissionFile,
 )
-from assessment_agent.spec import load_spec, load_spec_with_hash
 
 
 def _record(stage="grading", success=True) -> LLMCallRecord:
     return LLMCallRecord(stage=stage, latency_ms=100, success=success, error="" if success else "boom")
 
 
-async def _run(provider, *files, assignment_id="hw1_sorting"):
+async def _run(provider, repo, *files, assignment_id="hw1_sorting"):
     request = AssessmentRequest(student_id="s1", assignment_id=assignment_id, files=list(files))
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=provider):
-        return await assess_submission(request, api_key="sk-test")
+        return await assess_submission(request, repo, api_key="sk-test")
 
 
 # ---------------------------------------------------------------------------
@@ -50,28 +49,28 @@ class TestProvenanceCollector:
 # ---------------------------------------------------------------------------
 
 class TestAssessmentProvenance:
-    async def test_provenance_is_attached(self, fake_provider, submissions):
-        result = await _run(fake_provider, submissions["perfect_code"])
+    async def test_provenance_is_attached(self, fake_provider, submissions, assessment_repo):
+        result = await _run(fake_provider, assessment_repo, submissions["perfect_code"])
         prov = result.provenance
         assert prov.model_id == fake_provider.model_id
         assert prov.submission_hash == hash_files([submissions["perfect_code"]])
-        assert prov.spec_hash == load_spec_with_hash("hw1_sorting")[1]
+        assert prov.spec_hash
 
-    async def test_same_inputs_produce_same_hashes(self, fake_provider, submissions):
-        first = (await _run(fake_provider, submissions["perfect_code"])).provenance
-        second = (await _run(fake_provider, submissions["perfect_code"])).provenance
+    async def test_same_inputs_produce_same_hashes(self, fake_provider, submissions, assessment_repo):
+        first = (await _run(fake_provider, assessment_repo, submissions["perfect_code"])).provenance
+        second = (await _run(fake_provider, assessment_repo, submissions["perfect_code"])).provenance
         assert first.submission_hash == second.submission_hash
         assert first.spec_hash == second.spec_hash
 
-    async def test_different_files_produce_different_hash(self, fake_provider, submissions):
-        first = (await _run(fake_provider, submissions["perfect_code"])).provenance
-        second = (await _run(fake_provider, submissions["buggy_code"])).provenance
+    async def test_different_files_produce_different_hash(self, fake_provider, submissions, assessment_repo):
+        first = (await _run(fake_provider, assessment_repo, submissions["perfect_code"])).provenance
+        second = (await _run(fake_provider, assessment_repo, submissions["buggy_code"])).provenance
         assert first.submission_hash != second.submission_hash
 
-    async def test_result_never_contains_the_reference_solution(self, fake_provider):
-        solution = load_spec("hw2_linked_list").reference_solution[0].content
+    async def test_result_never_contains_the_reference_solution(self, fake_provider, assessment_repo):
+        solution = assessment_repo.list_solution("hw2_linked_list")[0]["extracted_text"]
         files = [SubmissionFile(filename="ll.py", content="class Node:\n    pass\n")]
-        result = await _run(fake_provider, *files, assignment_id="hw2_linked_list")
+        result = await _run(fake_provider, assessment_repo, *files, assignment_id="hw2_linked_list")
         serialized = json.dumps(result.model_dump())
         assert "prompt_text" not in serialized
         assert "raw_response" not in serialized

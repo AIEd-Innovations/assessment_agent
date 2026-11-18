@@ -10,7 +10,7 @@ import re
 import httpx
 
 from assessment_agent import config
-from assessment_agent.spec import Criterion, GradingSpec, check_id, save_material_text, save_spec
+from assessment_agent.spec import Criterion, GradingSpec, check_id
 
 IMPORTED_MATERIAL = "curriculum-designer.txt"
 
@@ -21,13 +21,13 @@ class CurriculumError(Exception):
         self.status = status
 
 
-async def fetch_lab(lab_id: str) -> dict:
+async def fetch_lab(lab_id: str, course_id: str) -> dict:
     if not config.CURRICULUM_URL:
         raise CurriculumError(503, "CURRICULUM_URL is not set, so labs cannot be imported")
     url = f"{config.CURRICULUM_URL.rstrip('/')}/curriculum/{lab_id}"
     try:
         async with httpx.AsyncClient(timeout=15) as client:
-            response = await client.get(url)
+            response = await client.get(url, params={"course_id": course_id})
     except httpx.HTTPError as exc:
         raise CurriculumError(502, f"Could not reach the curriculum designer: {exc}") from exc
     if response.status_code == 404:
@@ -101,17 +101,21 @@ def lab_to_specs(lab: dict, assignment_id: str) -> list[GradingSpec]:
     return specs
 
 
-async def import_lab(lab_id: str, assignment_id: str | None = None) -> dict:
-    """Fetch an approved lab and save it as specs. Re-importing replaces the specs and keeps uploaded solutions."""
+async def import_lab(repo, lab_id: str, course_id: str, assignment_id: str | None = None) -> dict:
+    """Fetch an approved lab and persist a course-scoped copy in MongoDB."""
     assignment_id = assignment_id or lab_id
     check_id(lab_id)
     check_id(assignment_id)
-    lab = await fetch_lab(lab_id)
+    lab = await fetch_lab(lab_id, course_id)
     specs = lab_to_specs(lab, assignment_id)
     for spec in specs:
-        save_spec(spec)
+        stored = spec.model_dump(exclude={"reference_solution", "materials", "agent_config", "max_score"})
+        for row, criterion in zip(stored["criteria"], spec.criteria):
+            if criterion.expected_answer:
+                row["expected_answer"] = criterion.expected_answer
+        repo.upsert_assignment(stored)
     material = lab.get("material_content")
     if material:
         for spec in specs:
-            save_material_text(spec.assignment_id, IMPORTED_MATERIAL, material)
+            repo.add_material(spec.assignment_id, {"filename": IMPORTED_MATERIAL, "extracted_text": material, "size_bytes": len(material.encode("utf-8"))})
     return {"imported": [s.assignment_id for s in specs], "material": bool(material)}

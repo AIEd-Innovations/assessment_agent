@@ -1,10 +1,8 @@
-from pathlib import Path
 from unittest.mock import patch
 
 from fastapi.testclient import TestClient
 
 from assessment_agent import config
-from assessment_agent.spec import load_spec, load_spec_with_hash
 from run import app
 
 client = TestClient(app)
@@ -25,6 +23,14 @@ def create(assignment_id="lab9", body=RUBRIC):
     return client.put(f"/assignments/{assignment_id}", json=body)
 
 
+def stored_assignment(assignment_id: str) -> dict:
+    return app.state.database["assignments"].find_one({"course_id": "test-course", "assignment_id": assignment_id})
+
+
+def stored_files(assignment_id: str, kind: str) -> list[dict]:
+    return list(app.state.database["assignment_files"].find({"course_id": "test-course", "assignment_id": assignment_id, "kind": kind}))
+
+
 def test_put_creates_an_assignment_without_leaking_expected_answers():
     resp = create()
     assert resp.status_code == 200
@@ -33,7 +39,7 @@ def test_put_creates_an_assignment_without_leaking_expected_answers():
     rubric = client.get("/assignments/lab9/rubric").json()
     assert rubric["model"] == "gemini-3.8-flash"
     assert "LIFO" not in str(rubric)
-    assert load_spec("lab9").criteria[1].expected_answer == "LIFO"
+    assert stored_assignment("lab9")["criteria"][1]["expected_answer"] == "LIFO"
     listed = {a["assignment_id"]: a for a in client.get("/assignments").json()}
     assert listed["lab9"]["source"] == "upload"
 
@@ -65,20 +71,17 @@ def test_agent_config_defaults_and_persists_per_assignment():
     assert "agent_config" not in client.get("/assignments/lab9/rubric").json()
 
 
-def test_agent_config_changes_the_spec_hash_and_survives_a_rubric_replacement():
+def test_agent_config_survives_a_rubric_replacement():
     create()
-    before = load_spec_with_hash("lab9")[1]
     client.put("/assignments/lab9/agent-config", json=PREFERENCES)
-    assert load_spec_with_hash("lab9")[1] != before
     create(body={**RUBRIC, "title": "Lab 9 v2"})
-    assert load_spec("lab9").agent_config.tone == "Encouraging"
+    assert client.get("/assignments/lab9/agent-config").json()["tone"] == "Encouraging"
 
 
 def test_agent_config_for_a_built_in_example():
     assert client.put("/assignments/hw1_sorting/agent-config", json=PREFERENCES).status_code == 200
-    spec = load_spec("hw1_sorting")
-    assert spec.source == "built-in"
-    assert spec.agent_config.partial_credit == "Strict"
+    assert stored_assignment("hw1_sorting")["source"] == "built-in"
+    assert client.get("/assignments/hw1_sorting/agent-config").json()["partial_credit"] == "Strict"
 
 
 def test_deleting_an_assignment_deletes_its_agent_config():
@@ -105,9 +108,9 @@ def test_solution_is_stored_but_never_returned(make_pdf):
         ("files", ("key.pdf", make_pdf("ANSWER KEY MARKER"))),
     ])
     assert resp.json()["files"] == ["stack.py", "key.pdf"]
-    solution = {f.filename: f.content for f in load_spec("lab9").reference_solution}
+    solution = {f["filename"]: f["extracted_text"] for f in stored_files("lab9", "solution")}
     assert "SOLUTION_MARKER" in solution["stack.py"]
-    assert "ANSWER KEY MARKER" in solution["key.pdf.txt"]
+    assert "ANSWER KEY MARKER" in solution["key.pdf"]
     for path in ("/assignments", "/assignments/lab9/rubric", "/assignments/lab9/materials"):
         assert "MARKER" not in client.get(path).text
 
@@ -116,7 +119,7 @@ def test_replacing_the_solution_removes_the_old_one():
     create()
     client.put("/assignments/lab9/solution", files=[("files", ("old.py", b"old"))])
     client.put("/assignments/lab9/solution", files=[("files", ("new.py", b"new"))])
-    assert [f.filename for f in load_spec("lab9").reference_solution] == ["new.py"]
+    assert [f["filename"] for f in stored_files("lab9", "solution")] == ["new.py"]
 
 
 def test_bad_solution_file_keeps_the_old_solution():
@@ -124,7 +127,7 @@ def test_bad_solution_file_keeps_the_old_solution():
     client.put("/assignments/lab9/solution", files=[("files", ("old.py", b"old"))])
     resp = client.put("/assignments/lab9/solution", files=[("files", ("x.png", b"\x89PNG\xff\xfe"))])
     assert resp.status_code == 400
-    assert [f.filename for f in load_spec("lab9").reference_solution] == ["old.py"]
+    assert [f["filename"] for f in stored_files("lab9", "solution")] == ["old.py"]
 
 
 def test_materials_upload_list_and_delete(make_pdf, make_docx):
@@ -136,12 +139,12 @@ def test_materials_upload_list_and_delete(make_pdf, make_docx):
     ])
     assert resp.status_code == 200
     assert "warning" not in resp.json()
-    names = [m["name"] for m in client.get("/assignments/lab9/materials").json()]
+    names = [m["filename"] for m in client.get("/assignments/lab9/materials").json()]
     assert sorted(names) == ["extra.md", "handout.docx", "notes.pdf"]
-    assert any("LIFO" in m.content for m in load_spec("lab9").materials)
+    assert any("LIFO" in m["extracted_text"] for m in stored_files("lab9", "material"))
 
     assert client.delete("/assignments/lab9/materials/notes.pdf").status_code == 204
-    assert sorted(m["name"] for m in client.get("/assignments/lab9/materials").json()) == ["extra.md", "handout.docx"]
+    assert sorted(m["filename"] for m in client.get("/assignments/lab9/materials").json()) == ["extra.md", "handout.docx"]
     assert client.delete("/assignments/lab9/materials/notes.pdf").status_code == 404
 
 
@@ -162,16 +165,16 @@ def test_unsupported_material_stores_nothing():
     assert client.get("/assignments/lab9/materials").json() == []
 
 
-def test_uploaded_spec_overrides_a_built_in_example_until_deleted():
-    assert load_spec("hw1_sorting").source == "built-in"
+def test_uploaded_spec_replaces_a_fixture_assignment():
+    assert stored_assignment("hw1_sorting")["source"] == "built-in"
     create("hw1_sorting")
-    assert load_spec("hw1_sorting").source == "upload"
+    assert stored_assignment("hw1_sorting")["source"] == "upload"
     assert client.delete("/assignments/hw1_sorting").status_code == 204
-    assert load_spec("hw1_sorting").source == "built-in"
+    assert stored_assignment("hw1_sorting") is None
 
 
-def test_built_in_and_unknown_assignments_cannot_be_deleted():
-    assert client.delete("/assignments/hw1_sorting").status_code == 400
+def test_fixture_and_unknown_assignments_can_be_deleted_or_return_404():
+    assert client.delete("/assignments/hw1_sorting").status_code == 204
     assert client.delete("/assignments/nope").status_code == 404
 
 
@@ -200,7 +203,7 @@ LAB = {
 
 
 def import_lab(lab=LAB, path="/assignments/import/lab4"):
-    async def fake_fetch(lab_id):
+    async def fake_fetch(lab_id, course_id):
         return lab
     with patch("assessment_agent.curriculum.fetch_lab", fake_fetch):
         return client.post(path)
@@ -210,9 +213,9 @@ def test_import_creates_the_lab_and_its_quiz(data_dir: Path):
     resp = import_lab()
     assert resp.status_code == 200
     assert resp.json() == {"imported": ["lab4", "lab4-quiz"], "material": True}
-    assert load_spec("lab4").source == "curriculum-designer lab4 v1"
-    assert load_spec("lab4-quiz").criteria[0].expected_answer == "O(n)"
-    assert "nodes point" in load_spec("lab4").materials[0].content
+    assert stored_assignment("lab4")["source"] == "curriculum-designer lab4 v1"
+    assert stored_assignment("lab4-quiz")["criteria"][0]["expected_answer"] == "O(n)"
+    assert "nodes point" in stored_files("lab4", "material")[0]["extracted_text"]
     assert "O(n)" not in client.get("/assignments/lab4-quiz/rubric").text
 
 
@@ -220,9 +223,8 @@ def test_reimport_keeps_the_uploaded_solution():
     import_lab()
     client.put("/assignments/lab4/solution", files=[("files", ("list.py", b"class Node: ..."))])
     import_lab({**LAB, "version": 2})
-    spec = load_spec("lab4")
-    assert spec.source == "curriculum-designer lab4 v2"
-    assert [f.filename for f in spec.reference_solution] == ["list.py"]
+    assert stored_assignment("lab4")["source"] == "curriculum-designer lab4 v2"
+    assert [f["filename"] for f in stored_files("lab4", "solution")] == ["list.py"]
 
 
 def test_import_into_a_chosen_assignment_id():

@@ -115,7 +115,7 @@ def _read_texts(directory: Path) -> list[SubmissionFile]:
         return []
     return [
         SubmissionFile(filename=path.relative_to(directory).as_posix(), content=path.read_text(encoding="utf-8"))
-        for path in sorted(p for p in directory.rglob("*") if p.is_file())
+        for path in sorted(p for p in directory.rglob("*") if p.is_file() and "__pycache__" not in p.parts and p.suffix != ".pyc")
     ]
 
 
@@ -153,6 +153,44 @@ def load_spec_with_hash(assignment_id: str) -> tuple[GradingSpec, str]:
 
 def load_spec(assignment_id: str) -> GradingSpec:
     return load_spec_with_hash(assignment_id)[0]
+
+
+def load_repo_spec_with_hash(repo, assignment_id: str) -> tuple[GradingSpec, str]:
+    """Build the grader's in-memory spec from the course-scoped Mongo repo."""
+    assignment = repo.get_assignment(assignment_id)
+    if assignment is None:
+        raise SpecNotFoundError(f"No grading spec for assignment {assignment_id!r}")
+    solution = [SubmissionFile(filename=f["filename"], content=f.get("extracted_text", "")) for f in repo.list_solution(assignment_id)]
+    materials = [SubmissionFile(filename=f["filename"], content=f.get("extracted_text", "")) for f in repo.list_materials(assignment_id)]
+    data = {key: assignment.get(key) for key in ("assignment_id", "title", "description", "criteria", "guidance", "model", "source")}
+    # The shared config service owns instructor preferences. Convert its
+    # resolved values to the prompt-facing model used by the grader.
+    from aied_db import AgentConfig as SharedAgentConfig
+    shared = SharedAgentConfig(repo._db, "assessment", course_id=repo.course_id, assignment_id=assignment_id)
+    data.update(
+        reference_solution=solution,
+        materials=materials,
+        agent_config=AgentConfig(
+            tone=shared.get("feedback.tone", "Neutral"),
+            feedback_detail=shared.get("feedback.detail", "Standard"),
+            partial_credit=shared.get("grading.partial_credit", "Balanced"),
+            notes=shared.get("grading.notes", ""),
+        ),
+    )
+    spec = GradingSpec(**data)
+    digest = hashlib.sha256(
+        json.dumps(
+            {
+                "assignment": assignment,
+                "agent_config": spec.agent_config.model_dump(),
+                "solution": [f.model_dump() for f in solution],
+                "materials": [f.model_dump() for f in materials],
+            },
+            sort_keys=True,
+            default=str,
+        ).encode()
+    ).hexdigest()
+    return spec, digest
 
 
 def list_specs() -> list[GradingSpec]:

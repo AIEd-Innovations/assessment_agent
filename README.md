@@ -46,7 +46,8 @@ Settings can go in a `.env` file (loaded at startup) or the shell environment:
 | Variable | Default | Purpose |
 |---|---|---|
 | `CORS_ORIGINS` | `http://localhost:5173,http://127.0.0.1:5173` | comma-separated origins allowed to call the API from a browser |
-| `DATA_DIR` | repo root (`/appdata` in the Docker image) | where results, submitted files and instructor-provided specs are written |
+| `MONGODB_URI` | required | Atlas connection string for the Assessment Agent database user; keep it out of the repo |
+| `MONGODB_DB` | `aied` | shared MongoDB database name |
 | `CURRICULUM_URL` | none | curriculum designer base URL, for importing approved labs |
 | `AUTH_MS_CLIENT_ID` | none (sign-in off) | the instructor UI's Microsoft app (client) ID; when set, every endpoint except `/health` needs a signed-in instructor |
 | `AUTH_MS_TENANT_ID` | Cal Poly's tenant | the Microsoft directory sign-ins must come from |
@@ -57,8 +58,8 @@ sends once someone signs in. The token's signature (Microsoft's published keys),
 email domain are checked (`auth.py`); anything else gets 401 with the reason. Without it the API is open, as for local development.
 
 **Deploying:** set `CORS_ORIGINS` to the origin of the deployed UI (for example `https://ui-instructor.vercel.app`). The default only allows the
-local Vite dev server, so a deployed UI would be blocked by the browser even though the agent is healthy. `DATA_DIR` is created at startup and the
-agent refuses to start if it cannot write there (in Docker the process runs as uid 1000, so a bind-mounted host folder must be writable by that user).
+local Vite dev server, so a deployed UI would be blocked by the browser even though the agent is healthy. Set `MONGODB_URI` only in the deployment
+environment; it is never committed. Before deployment, Vishal must run `scripts/init_db.py` and `scripts/atlas_roles.py` from the shared databases repo.
 
 ## Grading specs
 A spec holds `title`, `description`, `criteria` (`id`, `name`, `description`, `max_points`, and an optional
@@ -67,17 +68,18 @@ the models above; `claude-sonnet-5-5` if omitted). It can also have a reference 
 materials such as lecture notes. Solutions, materials and expected answers are given to the grader but never returned by
 the API.
 
-Instructors manage specs through the API (endpoints below); they are stored in `DATA_DIR/assignments/<id>/` and take
-precedence over the built-in examples in `assessment_agent/assignments/` (`hw1_sorting`, `hw2_linked_list`, drafts for
-an instructor to check). Solutions and materials can be text in any language, PDF, Word `.docx` or Jupyter `.ipynb`;
+Instructors manage specs through the API (endpoints below). They are stored in the shared MongoDB `aied` database and
+are scoped to a `course_id`; the same assignment ID can therefore be used in different courses without exposing or
+overwriting another instructor's data. The bundled examples in `assessment_agent/assignments/` are test fixtures only,
+not production defaults. Solutions and materials can be text in any language, PDF, Word `.docx` or Jupyter `.ipynb`;
 the extracted text is what the grader reads, and the originals are kept. Up to 40,000 characters of materials are given
 to the grader, and the upload response warns when there is more.
 
 Each assignment, built-in examples included, can also have grading preferences (`/assignments/{id}/agent-config`):
 feedback tone (Encouraging, Neutral, Direct), feedback detail (Brief, Standard, Detailed), partial credit (Generous,
 Balanced, Strict) and free-text notes. The defaults leave the grading prompt unchanged; anything else is added to it
-as instructions, and partial credit is the one setting that can change scores. Preferences are saved in the
-assignment's folder as `agent_config.json`, count towards the spec hash, and are deleted with the assignment.
+as instructions, and partial credit is the one setting that can change scores. Preferences use the shared
+`agent_configs` collection, count toward the spec hash, and are deleted with the assignment.
 
 An approved curriculum designer lab can be imported with `POST /assignments/import/{lab_id}` (set `CURRICULUM_URL`).
 The import is a saved copy, so grading never depends on the curriculum designer: its criterion weights are scaled to
@@ -86,53 +88,50 @@ expected answers, and its uploaded material becomes course material. Re-importin
 uploaded solution.
 
 ### Seed data for UI development
-Results are stored as JSON files in the repo root (gitignored). To have something to list without grading anything:
-
-```bash
-cp demo/seed_results.json assessment_results.json
-curl "localhost:8000/results?assignment_id=hw1_sorting"
-```
-`demo/seed_results.json` was made with the mock model and edited by hand to cover each status.
+Initialize the shared database with `scripts/init_db.py` from the shared `databases` repository, then create an
+assignment through the API or import an approved curriculum lab. Results, submitted files, assignments, materials and
+agent settings all live in MongoDB, scoped by `course_id`.
 
 ## Docker
 ```bash
 docker build -t assessment-agent .
-docker run -p 8000:8000 -e CORS_ORIGINS=http://localhost:5173 -v assessment-data:/appdata assessment-agent
+docker run -p 8000:8000 -e CORS_ORIGINS=http://localhost:5173 -e MONGODB_URI='mongodb+srv://…' assessment-agent
 ```
-The image runs as an unprivileged user and writes results to `/appdata` (mount a volume to keep them).
+The image runs as an unprivileged user. Persistent data is held in MongoDB; no local data volume is needed.
 
 ## Endpoints
 | Method and path | Purpose |
 |---|---|
 | `GET /health` | health check |
-| `POST /submit` | multipart: `student_id`, `assignment_id`, one or more `files` (UTF-8 text); header `X-LLM-API-Key` |
-| `POST /submit-json` | JSON: `student_id`, `assignment_id`, `files: [{filename, content}]`; header `X-LLM-API-Key` |
-| `GET /models` | supported models with their vendor, and the default |
-| `GET /assignments`, `/assignments/{id}/rubric` | assignments with a spec; the rubric view never includes the solution, materials or expected answers |
-| `PUT /assignments/{id}`, `DELETE /assignments/{id}` | create or replace a rubric (JSON), or delete an uploaded assignment |
-| `GET`/`PUT /assignments/{id}/agent-config` | the instructor's grading preferences: `tone`, `feedback_detail`, `partial_credit`, `notes` |
-| `PUT /assignments/{id}/solution` | multipart `files`: replace the reference solution or answer key |
-| `POST`/`GET /assignments/{id}/materials`, `DELETE /assignments/{id}/materials/{name}` | add, list or remove course materials |
-| `POST /assignments/import/{lab_id}?assignment_id=` | import an approved curriculum designer lab (and its quiz) |
-| `GET /results?student_id&assignment_id&status&latest`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results; `latest=true` keeps only each student's newest result per assignment (their current grade) |
-| `POST /results/{submission_id}/regrade` | optional JSON `instructions`; header `X-LLM-API-Key`. Grades the stored files again as a new result |
-| `POST /results/{submission_id}/review` | JSON: `final_score` (0 to `max_score`) and `notes`; replaces the AI score |
+| `POST /submit` | multipart: `course_id`, `student_id`, `assignment_id`, one or more `files` (UTF-8 text); header `X-LLM-API-Key` |
+| `POST /submit-json` | query `course_id`; JSON: `student_id`, `assignment_id`, `files: [{filename, content}]`; header `X-LLM-API-Key` |
+| `GET /models` | query `course_id`; supported models with their vendor and the default |
+| `GET /assignments`, `/assignments/{id}/rubric` | query `course_id`; assignments with a spec; the rubric view never includes the solution, materials or expected answers |
+| `PUT /assignments/{id}`, `DELETE /assignments/{id}` | query `course_id`; create or replace a rubric (JSON), or delete an assignment |
+| `GET`/`PUT /assignments/{id}/agent-config` | query `course_id`; the instructor's grading preferences: `tone`, `feedback_detail`, `partial_credit`, `notes` |
+| `PUT /assignments/{id}/solution` | query `course_id`; multipart `files`: replace the reference solution or answer key |
+| `POST`/`GET /assignments/{id}/materials`, `DELETE /assignments/{id}/materials/{name}` | query `course_id`; add, list or remove course materials |
+| `POST /assignments/import/{lab_id}?course_id=&assignment_id=` | import an approved curriculum designer lab (and its quiz) |
+| `GET /results?course_id=&student_id&assignment_id&status&latest`, `/results/{submission_id}`, `/results/{submission_id}/provenance` | graded results; `course_id` is required on every results request and `latest=true` keeps only each student's newest result per assignment |
+| `POST /results/{submission_id}/regrade` | query `course_id`; optional JSON `instructions`; header `X-LLM-API-Key`. Grades the stored files again as a new result |
+| `POST /results/{submission_id}/review` | query `course_id`; JSON: `final_score` (0 to `max_score`) and `notes`; replaces the AI score |
 
 Key result fields: `criteria` (per-criterion score, justification and evidence), `score`, `max_score`, `status`,
 `review_reasons`, `final_score`, `feedback`, `model`, `mock`, and `regrade_of` and `regrade_instructions` on a regrade.
 The full shape is `AssessmentResult` in `models.py`.
 
 ## Stored student work
-Submitted files are kept in `DATA_DIR/submissions/<submission_id>.json` so they can be regraded. No endpoint returns
-them. There is no access control or deletion yet, so do not put real students' work through the agent until
-instructor login is in place. Results graded before files were stored cannot be regraded (409); resubmit them.
+Submitted files are kept in MongoDB so they can be regraded. No endpoint returns their contents. When Microsoft
+sign-in is enabled, the caller's SSO subject is resolved through the shared `users` and `courses` collections; an
+instructor can only access courses they own. Results from before this migration may not have stored files and cannot
+be regraded (409); resubmit them.
 
 ## Known limitations (not yet addressed)
 - Only UTF-8 text files are accepted.
 - Code is read, not run, so subtle bugs can be missed.
 - No bulk regrade, no CSV export, no student names (only `student_id`).
-- Sign-in is all or nothing: any @calpoly.edu account counts as an instructor (students have them too), and instructors
-  are not yet limited to their own assignments. Both need the shared `users` collection.
+- Local development with `AUTH_MS_CLIENT_ID` unset intentionally skips Microsoft sign-in and ownership checks. Enable
+  sign-in outside local development to enforce course ownership.
 
 ## Tests
 ```bash

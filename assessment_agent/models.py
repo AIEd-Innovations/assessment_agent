@@ -71,7 +71,7 @@ class AssessmentResult(BaseModel):
     submission_id: str = Field(default_factory=lambda: str(uuid.uuid4())[:8])
     student_id: str
     assignment_id: str
-    files: list[str] = []  # filenames; the submitted text is stored separately (submissions.py)
+    files: list[str] = []  # filenames; submitted text is retained separately in MongoDB for regrading
     regrade_of: Optional[str] = None  # the submission_id this result regrades
     regrade_instructions: str = ""  # the instructor's notes to the grader for that regrade
     model: str = ""  # the model that graded it; "mock" when no API key was provided
