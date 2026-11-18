@@ -69,5 +69,5 @@ def test_lab_without_weighted_criteria_is_rejected():
 async def test_fetch_needs_curriculum_url(monkeypatch):
     monkeypatch.setattr(config, "CURRICULUM_URL", "")
     with pytest.raises(CurriculumError) as exc:
-        await fetch_lab("lab4")
+        await fetch_lab("lab4", "test-course")
     assert exc.value.status == 503

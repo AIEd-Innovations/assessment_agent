@@ -9,7 +9,7 @@ from assessment_agent.models import (
 )
 from assessment_agent.agents.grader import grade_submission, total_score
 from assessment_agent.llm import get_llm_provider
-from assessment_agent.spec import load_spec_with_hash
+from assessment_agent.spec import load_repo_spec_with_hash
 
 
 logger = logging.getLogger(__name__)
@@ -30,7 +30,7 @@ def hash_files(files: list[SubmissionFile]) -> str:
 
 
 async def assess_submission(
-    request: AssessmentRequest, api_key: str | None = None, instructions: str = ""
+    request: AssessmentRequest, repo, api_key: str | None = None, instructions: str = ""
 ) -> AssessmentResult:
     """
     Grade a submission against its assignment's spec.
@@ -47,7 +47,7 @@ async def assess_submission(
     Raises SpecNotFoundError if the assignment has no spec, and LLMAuthError if
     the provider rejects the key.
     """
-    spec, spec_hash = load_spec_with_hash(request.assignment_id)
+    spec, spec_hash = load_repo_spec_with_hash(repo, request.assignment_id)
     mock = not api_key
     if mock:
         logger.warning("No API key for %s: grading with the mock model", request.assignment_id)

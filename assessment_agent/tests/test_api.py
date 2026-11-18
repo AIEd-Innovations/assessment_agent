@@ -118,7 +118,14 @@ def test_rubric_never_includes_the_solution():
 
 
 def _seed(data_dir: Path, *results):
-    (data_dir / "assessment_results.json").write_text(json.dumps(list(results)))
+    for result in results:
+        app.state.database["assessment_results"].insert_one({
+            "course_id": "test-course",
+            "files": [], "model": "mock", "mock": True, "criteria": [],
+            "feedback": None, "review_reasons": [], "regrade_of": None,
+            "regrade_instructions": "", "instructor_notes": "", "reviewed_at": None,
+            "created_at": None, **result,
+        })
 
 
 def _result(submission_id, status="ai_graded", score=70.0):
@@ -208,7 +215,7 @@ def regrade(submission_id, json=None, key="sk-test"):
 
 def test_submitted_files_are_stored_for_regrading(data_dir: Path, submissions):
     submission_id = _submit_code(submissions)["submission_id"]
-    stored = json.loads((data_dir / "submissions" / f"{submission_id}.json").read_text())
+    stored = app.state.database["submission_files"].find_one({"submission_id": submission_id})["files"]
     assert stored == [submissions["perfect_code"].model_dump()]
     assert submissions["perfect_code"].content not in client.get(f"/results/{submission_id}").text
 
@@ -227,8 +234,9 @@ def test_regrade_saves_a_new_linked_result(data_dir: Path, submissions):
     assert "Recursion is fine." in recorder.prompts[0]
     assert submissions["perfect_code"].content in recorder.prompts[0]
 
-    assert client.get(f"/results/{original['submission_id']}").json() == original
-    assert [r["submission_id"] for r in client.get("/results").json()] == [original["submission_id"], new["submission_id"]]
+    stored_original = client.get(f"/results/{original['submission_id']}").json()
+    assert {key: value for key, value in stored_original.items() if key != "course_id"} == original
+    assert {r["submission_id"] for r in client.get("/results").json()} == {original["submission_id"], new["submission_id"]}
     # the regrade's files are stored too, so it can be regraded again
     assert regrade(new["submission_id"], key=None).status_code == 200
 
@@ -255,7 +263,9 @@ def test_failed_regrade_keeps_the_previous_grade(data_dir: Path, submissions):
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=FailingProvider()):
         resp = regrade(original["submission_id"])
     assert resp.status_code == 502
-    assert client.get("/results").json() == [original]
+    results = client.get("/results").json()
+    assert len(results) == 1
+    assert {key: value for key, value in results[0].items() if key != "course_id"} == original
 
 
 def test_regrade_with_a_rejected_key_is_401_and_saves_nothing(data_dir: Path, submissions):
@@ -263,7 +273,9 @@ def test_regrade_with_a_rejected_key_is_401_and_saves_nothing(data_dir: Path, su
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=RejectedKeyProvider()):
         resp = regrade(original["submission_id"], key="sk-bad")
     assert resp.status_code == 401
-    assert client.get("/results").json() == [original]
+    results = client.get("/results").json()
+    assert len(results) == 1
+    assert {key: value for key, value in results[0].items() if key != "course_id"} == original
 
 
 def test_regrade_without_stored_files_is_409(data_dir: Path):

@@ -28,13 +28,13 @@ def make_request(*files, assignment_id="hw1_sorting") -> AssessmentRequest:
     return AssessmentRequest(student_id="test_student", assignment_id=assignment_id, files=list(files))
 
 
-async def run(request, provider):
+async def run(request, provider, repo):
     with patch("assessment_agent.agents.orchestrator.get_llm_provider", return_value=provider):
-        return await assess_submission(request, api_key="sk-test")
+        return await assess_submission(request, repo, api_key="sk-test")
 
 
-async def test_code_submission_is_graded(fake_provider, submissions):
-    result = await run(make_request(submissions["perfect_code"]), fake_provider)
+async def test_code_submission_is_graded(fake_provider, submissions, assessment_repo):
+    result = await run(make_request(submissions["perfect_code"]), fake_provider, assessment_repo)
     assert result.status == "ai_graded"
     assert result.review_reasons == []
     assert result.max_score == 100
@@ -45,38 +45,38 @@ async def test_code_submission_is_graded(fake_provider, submissions):
     assert result.final_score is None
 
 
-async def test_code_and_report_in_one_submission(fake_provider, submissions):
-    result = await run(make_request(submissions["perfect_code"], submissions["report"]), fake_provider)
+async def test_code_and_report_in_one_submission(fake_provider, submissions, assessment_repo):
+    result = await run(make_request(submissions["perfect_code"], submissions["report"]), fake_provider, assessment_repo)
     assert result.files == ["student_a_perfect.py", "student_a_report.md"]
     assert result.status == "ai_graded"
 
 
-async def test_other_languages_are_accepted(fake_provider):
+async def test_other_languages_are_accepted(fake_provider, assessment_repo):
     java = SubmissionFile(
         filename="Sort.java",
         content="import java.util.*;\nclass Sort { public static void main(String[] a) { } }\n",
     )
-    result = await run(make_request(java), fake_provider)
+    result = await run(make_request(java), fake_provider, assessment_repo)
     assert result.status == "ai_graded"
     assert result.score == 80
 
 
-async def test_grading_is_the_only_model_call(submissions):
+async def test_grading_is_the_only_model_call(submissions, assessment_repo):
     provider = RecordingProvider()
-    result = await run(make_request(submissions["perfect_code"]), provider)
+    result = await run(make_request(submissions["perfect_code"]), provider, assessment_repo)
     assert len(provider.prompts) == 1
     assert provider.prompts[0].startswith("You are grading a student submission")
     assert [c.stage for c in result.provenance.llm_calls] == ["grading"]
 
 
-async def test_failed_grading_needs_review_without_a_score(submissions):
-    result = await run(make_request(submissions["buggy_code"]), BrokenGradingProvider())
+async def test_failed_grading_needs_review_without_a_score(submissions, assessment_repo):
+    result = await run(make_request(submissions["buggy_code"]), BrokenGradingProvider(), assessment_repo)
     assert result.status == "needs_review"
     assert result.score is None
     assert result.criteria == []
     assert GRADING_FAILED in result.review_reasons
 
 
-async def test_unknown_assignment_raises(fake_provider, submissions):
+async def test_unknown_assignment_raises(fake_provider, submissions, assessment_repo):
     with pytest.raises(SpecNotFoundError):
-        await run(make_request(submissions["perfect_code"], assignment_id="nope"), fake_provider)
+        await run(make_request(submissions["perfect_code"], assignment_id="nope"), fake_provider, assessment_repo)
